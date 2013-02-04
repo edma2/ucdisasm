@@ -1,8 +1,8 @@
-#ifndef PRINT_STREAM_FILE_H
-#define PRINT_STREAM_FILE_H
+#ifndef PRINTSTREAM_FILE_H
+#define PRINTSTREAM_FILE_H
 
 #include <stdio.h>
-#include <print_stream.h>
+#include <printstream.h>
 
 /* Print Stream Option Flags */
 enum {
@@ -16,9 +16,9 @@ enum {
 };
 
 /* Print Stream Support */
-int print_stream_file_init(struct PrintStream *self, int flags);
-int print_stream_file_close(struct PrintStream *self);
-int print_stream_file_read(struct PrintStream *self, FILE *out);
+int printstream_file_init(struct PrintStream *self, int flags);
+int printstream_file_close(struct PrintStream *self);
+int printstream_file_read(struct PrintStream *self, FILE *out);
 
 #endif
 

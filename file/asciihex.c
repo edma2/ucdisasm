@@ -4,25 +4,25 @@
 #include <string.h>
 #include <ctype.h>
 
-#include <byte_stream.h>
+#include <bytestream.h>
 
 /******************************************************************************/
 /* ASCII Hex Stream Support */
 /******************************************************************************/
 
-struct byte_stream_asciihex_state {
+struct bytestream_asciihex_state {
     uint32_t address;
 };
 
-int byte_stream_asciihex_init(struct ByteStream *self) {
+int bytestream_asciihex_init(struct ByteStream *self) {
     /* Allocate stream state */
-    self->state = malloc(sizeof(struct byte_stream_asciihex_state));
+    self->state = malloc(sizeof(struct bytestream_asciihex_state));
     if (self->state == NULL) {
         self->error = "Error allocating opcode stream state!";
         return STREAM_ERROR_ALLOC;
     }
     /* Initialize stream state */
-    memset(self->state, 0, sizeof(struct byte_stream_asciihex_state));
+    memset(self->state, 0, sizeof(struct bytestream_asciihex_state));
 
     /* Reset error string to NULL */
     self->error = NULL;
@@ -33,7 +33,7 @@ int byte_stream_asciihex_init(struct ByteStream *self) {
     return 0;
 }
 
-int byte_stream_asciihex_close(struct ByteStream *self) {
+int bytestream_asciihex_close(struct ByteStream *self) {
     /* Free stream state memory */
     free(self->state);
 
@@ -52,8 +52,8 @@ static uint8_t util_hex2num(char c) {
     return 0;
 }
 
-int byte_stream_asciihex_read(struct ByteStream *self, uint8_t *data, uint32_t *address) {
-    struct byte_stream_asciihex_state *state = (struct byte_stream_asciihex_state *)self->state;
+int bytestream_asciihex_read(struct ByteStream *self, uint8_t *data, uint32_t *address) {
+    struct bytestream_asciihex_state *state = (struct bytestream_asciihex_state *)self->state;
 
     int bytes_read;
     char hexstr[3];

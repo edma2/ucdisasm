@@ -3,25 +3,25 @@
 #include <stdio.h>
 #include <string.h>
 
-#include <byte_stream.h>
+#include <bytestream.h>
 
 /******************************************************************************/
 /* Binary Byte Stream Support */
 /******************************************************************************/
 
-struct byte_stream_binary_state {
+struct bytestream_binary_state {
     uint32_t address;
 };
 
-int byte_stream_binary_init(struct ByteStream *self) {
+int bytestream_binary_init(struct ByteStream *self) {
     /* Allocate stream state */
-    self->state = malloc(sizeof(struct byte_stream_binary_state));
+    self->state = malloc(sizeof(struct bytestream_binary_state));
     if (self->state == NULL) {
         self->error = "Error allocating opcode stream state!";
         return STREAM_ERROR_ALLOC;
     }
     /* Initialize stream state */
-    memset(self->state, 0, sizeof(struct byte_stream_binary_state));
+    memset(self->state, 0, sizeof(struct bytestream_binary_state));
 
     /* Reset error string to NULL */
     self->error = NULL;
@@ -32,7 +32,7 @@ int byte_stream_binary_init(struct ByteStream *self) {
     return 0;
 }
 
-int byte_stream_binary_close(struct ByteStream *self) {
+int bytestream_binary_close(struct ByteStream *self) {
     /* Free stream state memory */
     free(self->state);
 
@@ -42,8 +42,8 @@ int byte_stream_binary_close(struct ByteStream *self) {
     return 0;
 }
 
-int byte_stream_binary_read(struct ByteStream *self, uint8_t *data, uint32_t *address) {
-    struct byte_stream_binary_state *state = (struct byte_stream_binary_state *)self->state;
+int bytestream_binary_read(struct ByteStream *self, uint8_t *data, uint32_t *address) {
+    struct bytestream_binary_state *state = (struct bytestream_binary_state *)self->state;
     int bytes_read;
 
     /* Read a byte */

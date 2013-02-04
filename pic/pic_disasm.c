@@ -3,8 +3,8 @@
 #include <string.h>
 #include <stdio.h>
 
-#include <byte_stream.h>
-#include <disasm_stream.h>
+#include <bytestream.h>
+#include <disasmstream.h>
 #include <instruction.h>
 
 #include "pic_instruction_set.h"
@@ -14,7 +14,7 @@
 /* PIC Baseline / Midrange / Midrange Enhanced Disassembly Stream Support */
 /******************************************************************************/
 
-struct disasm_stream_pic_state {
+struct disasmstream_pic_state {
     /* Architecture */
     int subarch;
     /* 2-byte opcode buffer */
@@ -25,16 +25,16 @@ struct disasm_stream_pic_state {
     int eof;
 };
 
-static int disasm_stream_pic_init(struct DisasmStream *self, int subarch) {
+static int disasmstream_pic_init(struct DisasmStream *self, int subarch) {
     /* Allocate stream state */
-    self->state = malloc(sizeof(struct disasm_stream_pic_state));
+    self->state = malloc(sizeof(struct disasmstream_pic_state));
     if (self->state == NULL) {
         self->error = "Error allocating disasm stream state!";
         return STREAM_ERROR_ALLOC;
     }
     /* Initialize stream state */
-    memset(self->state, 0, sizeof(struct disasm_stream_pic_state));
-    ((struct disasm_stream_pic_state *)self->state)->subarch = subarch;
+    memset(self->state, 0, sizeof(struct disasmstream_pic_state));
+    ((struct disasmstream_pic_state *)self->state)->subarch = subarch;
 
     /* Reset the error to NULL */
     self->error = NULL;
@@ -50,19 +50,19 @@ static int disasm_stream_pic_init(struct DisasmStream *self, int subarch) {
 
 /* Wrapper functions for different sub-architectures */
 
-int disasm_stream_pic_baseline_init(struct DisasmStream *self) {
-    return disasm_stream_pic_init(self, PIC_ARCH_BASELINE);
+int disasmstream_pic_baseline_init(struct DisasmStream *self) {
+    return disasmstream_pic_init(self, PIC_ARCH_BASELINE);
 }
 
-int disasm_stream_pic_midrange_init(struct DisasmStream *self) {
-    return disasm_stream_pic_init(self, PIC_ARCH_MIDRANGE);
+int disasmstream_pic_midrange_init(struct DisasmStream *self) {
+    return disasmstream_pic_init(self, PIC_ARCH_MIDRANGE);
 }
 
-int disasm_stream_pic_midrange_enhanced_init(struct DisasmStream *self) {
-    return disasm_stream_pic_init(self, PIC_ARCH_MIDRANGE_ENHANCED);
+int disasmstream_pic_midrange_enhanced_init(struct DisasmStream *self) {
+    return disasmstream_pic_init(self, PIC_ARCH_MIDRANGE_ENHANCED);
 }
 
-int disasm_stream_pic_close(struct DisasmStream *self) {
+int disasmstream_pic_close(struct DisasmStream *self) {
     /* Free stream state memory */
     free(self->state);
 
@@ -130,7 +130,7 @@ static struct picInstructionInfo *util_iset_lookup_by_mnemonic(int subarch, char
     return NULL;
 }
 
-static int util_opbuffer_len_consecutive(struct disasm_stream_pic_state *state) {
+static int util_opbuffer_len_consecutive(struct disasmstream_pic_state *state) {
     int i, lenConsecutive;
 
     lenConsecutive = 0;
@@ -144,7 +144,7 @@ static int util_opbuffer_len_consecutive(struct disasm_stream_pic_state *state) 
     return lenConsecutive;
 }
 
-static void util_opbuffer_shift(struct disasm_stream_pic_state *state, int n) {
+static void util_opbuffer_shift(struct disasmstream_pic_state *state, int n) {
     int i, j;
 
     for (i = 0; i < n; i++) {
@@ -208,8 +208,8 @@ extern int pic_instruction_get_str_operand(struct instruction *instr, char *dest
 extern int pic_instruction_get_str_comment(struct instruction *instr, char *dest, int size, int flags);
 extern void pic_instruction_free(struct instruction *instr);
 
-int disasm_stream_pic_read(struct DisasmStream *self, struct instruction *instr) {
-    struct disasm_stream_pic_state *state = (struct disasm_stream_pic_state *)self->state;
+int disasmstream_pic_read(struct DisasmStream *self, struct instruction *instr) {
+    struct disasmstream_pic_state *state = (struct disasmstream_pic_state *)self->state;
 
     int decodeAttempts, lenConsecutive;
 

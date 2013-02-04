@@ -3,16 +3,16 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include <print_stream.h>
+#include <printstream.h>
 #include <instruction.h>
-#include <print_stream_file.h>
+#include <printstream_file.h>
 
 /******************************************************************************/
 /* File Print Stream Support */
 /******************************************************************************/
 
 /* Print Stream State */
-struct print_stream_file_state {
+struct printstream_file_state {
     /* Print Option Bit Flags */
     unsigned int flags;
     /* Origin Initiailized */
@@ -21,17 +21,17 @@ struct print_stream_file_state {
     uint32_t next_address;
 };
 
-int print_stream_file_init(struct PrintStream *self, int flags) {
+int printstream_file_init(struct PrintStream *self, int flags) {
     /* Allocate stream state */
-    self->state = malloc(sizeof(struct print_stream_file_state));
+    self->state = malloc(sizeof(struct printstream_file_state));
     if (self->state == NULL) {
         self->error = "Error allocating format stream state!";
         return STREAM_ERROR_ALLOC;
     }
 
     /* Initialize stream state */
-    memset(self->state, 0, sizeof(struct print_stream_file_state));
-    ((struct print_stream_file_state *)self->state)->flags = flags;
+    memset(self->state, 0, sizeof(struct printstream_file_state));
+    ((struct printstream_file_state *)self->state)->flags = flags;
 
     /* Reset the error to NULL */
     self->error = NULL;
@@ -45,7 +45,7 @@ int print_stream_file_init(struct PrintStream *self, int flags) {
     return 0;
 }
 
-int print_stream_file_close(struct PrintStream *self) {
+int printstream_file_close(struct PrintStream *self) {
     /* Free stream state memory */
     free(self->state);
 
@@ -58,8 +58,8 @@ int print_stream_file_close(struct PrintStream *self) {
     return 0;
 }
 
-int print_stream_file_read(struct PrintStream *self, FILE *out) {
-    struct print_stream_file_state *state = (struct print_stream_file_state *)self->state;
+int printstream_file_read(struct PrintStream *self, FILE *out) {
+    struct printstream_file_state *state = (struct printstream_file_state *)self->state;
     struct instruction instr;
     char str[128];
     int i, ret;

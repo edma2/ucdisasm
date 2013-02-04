@@ -3,28 +3,28 @@
 #include <stdio.h>
 #include <string.h>
 
-#include <byte_stream.h>
+#include <bytestream.h>
 
 /******************************************************************************/
 /* Debug Byte Stream Support */
 /******************************************************************************/
 
-struct byte_stream_debug_state {
+struct bytestream_debug_state {
     uint8_t *data;
     uint32_t *address;
     unsigned int len;
     int index;
 };
 
-int byte_stream_debug_init(struct ByteStream *self) {
+int bytestream_debug_init(struct ByteStream *self) {
     /* Allocate stream state */
-    self->state = malloc(sizeof(struct byte_stream_debug_state));
+    self->state = malloc(sizeof(struct bytestream_debug_state));
     if (self->state == NULL) {
         self->error = "Error allocating opcode stream state!";
         return STREAM_ERROR_ALLOC;
     }
     /* Initialize stream state */
-    memset(self->state, 0, sizeof(struct byte_stream_debug_state));
+    memset(self->state, 0, sizeof(struct bytestream_debug_state));
 
     /* Reset error string to NULL */
     self->error = NULL;
@@ -35,7 +35,7 @@ int byte_stream_debug_init(struct ByteStream *self) {
     return 0;
 }
 
-int byte_stream_debug_close(struct ByteStream *self) {
+int bytestream_debug_close(struct ByteStream *self) {
     /* Free stream state memory */
     free(self->state);
 
@@ -45,8 +45,8 @@ int byte_stream_debug_close(struct ByteStream *self) {
     return 0;
 }
 
-int byte_stream_debug_read(struct ByteStream *self, uint8_t *data, uint32_t *address) {
-    struct byte_stream_debug_state *state = (struct byte_stream_debug_state *)self->state;
+int bytestream_debug_read(struct ByteStream *self, uint8_t *data, uint32_t *address) {
+    struct bytestream_debug_state *state = (struct bytestream_debug_state *)self->state;
 
     /* If we have no more data left in our test vector */
     if (state->len == 0)
