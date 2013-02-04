@@ -1,8 +1,8 @@
-#ifndef PRINT_STREAM_H
-#define PRINT_STREAM_H
+#ifndef PRINTSTREAM_H
+#define PRINTSTREAM_H
 
 #include <stdio.h>
-#include <disasm_stream.h>
+#include <disasmstream.h>
 #include <instruction.h>
 #include <stream_error.h>
 

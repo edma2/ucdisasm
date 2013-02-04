@@ -1,5 +1,5 @@
-#ifndef BYTE_STREAM_H
-#define BYTE_STREAM_H
+#ifndef BYTESTREAM_H
+#define BYTESTREAM_H
 
 #include <stdint.h>
 #include <stdio.h>

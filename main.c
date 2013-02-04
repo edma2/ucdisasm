@@ -3,9 +3,9 @@
 #include <string.h>
 #include <getopt.h>
 
-#include <byte_stream.h>
-#include <disasm_stream.h>
-#include <print_stream.h>
+#include <bytestream.h>
+#include <disasmstream.h>
+#include <printstream.h>
 
 /* File ByteStream Support */
 #include "file/file_support.h"
@@ -16,7 +16,7 @@
 #include "pic/pic_support.h"
 
 /* File PrintStream Support */
-#include "print_stream_file.h"
+#include "printstream_file.h"
 
 /* Supported file types */
 enum {
@@ -110,7 +110,7 @@ static void printVersion(void) {
     printf("Written by Vanya Sergeev - <vsergeev@gmail.com>\n");
 }
 
-void print_stream_error_trace(struct PrintStream *ps, struct DisasmStream *ds, struct ByteStream *bs) {
+void printstream_error_trace(struct PrintStream *ps, struct DisasmStream *ds, struct ByteStream *bs) {
     if (ps->error == NULL)
         fprintf(stderr, "\tPrint Stream Error: No error\n");
     else
@@ -278,24 +278,24 @@ int main(int argc, const char *argv[]) {
 
     /*** Debug ***/
 
-    #ifdef DEBUG_BYTE_STREAM
+    #ifdef DEBUG_bytestream
         /* Test opcode stream */
         if (file_type == FILE_TYPE_ATMEL_GENERIC)
-            test_byte_stream(file_in, byte_stream_generic_init, byte_stream_generic_close, byte_stream_generic_read);
+            test_bytestream(file_in, bytestream_generic_init, bytestream_generic_close, bytestream_generic_read);
         else if (file_type == FILE_TYPE_INTEL_HEX)
-            test_byte_stream(file_in, byte_stream_ihex_init, byte_stream_ihex_close, byte_stream_ihex_read);
+            test_bytestream(file_in, bytestream_ihex_init, bytestream_ihex_close, bytestream_ihex_read);
         else if (file_type == FILE_TYPE_MOTOROLA_SRECORD)
-            test_byte_stream(file_in, byte_stream_srecord_init, byte_stream_srecord_close, byte_stream_srecord_read);
+            test_bytestream(file_in, bytestream_srecord_init, bytestream_srecord_close, bytestream_srecord_read);
         else if (file_type == FILE_TYPE_BINARY)
-            test_byte_stream(file_in, byte_stream_binary_init, byte_stream_binary_close, byte_stream_binary_read);
+            test_bytestream(file_in, bytestream_binary_init, bytestream_binary_close, bytestream_binary_read);
         goto cleanup_exit_success;
-    #elif defined DEBUG_DISASM_STREAM
+    #elif defined DEBUG_disasmstream
         /* Test Disasm Stream */
-        test_disasm_stream_unit_tests();
+        test_disasmstream_unit_tests();
         goto cleanup_exit_success;
-    #elif defined DEBUG_PRINT_STREAM
+    #elif defined DEBUG_printstream
         /* Test Print Stream */
-        test_print_stream();
+        test_printstream();
         goto cleanup_exit_success;
     #endif
 
@@ -322,57 +322,57 @@ int main(int argc, const char *argv[]) {
     /* Setup the ByteStream */
     bs.in = file_in;
     if (file_type == FILE_TYPE_ATMEL_GENERIC) {
-        bs.stream_init = byte_stream_generic_init;
-        bs.stream_close = byte_stream_generic_close;
-        bs.stream_read = byte_stream_generic_read;
+        bs.stream_init = bytestream_generic_init;
+        bs.stream_close = bytestream_generic_close;
+        bs.stream_read = bytestream_generic_read;
     } else if (file_type == FILE_TYPE_INTEL_HEX) {
-        bs.stream_init = byte_stream_ihex_init;
-        bs.stream_close = byte_stream_ihex_close;
-        bs.stream_read = byte_stream_ihex_read;
+        bs.stream_init = bytestream_ihex_init;
+        bs.stream_close = bytestream_ihex_close;
+        bs.stream_read = bytestream_ihex_read;
     } else if (file_type == FILE_TYPE_MOTOROLA_SRECORD) {
-        bs.stream_init = byte_stream_srecord_init;
-        bs.stream_close = byte_stream_srecord_close;
-        bs.stream_read = byte_stream_srecord_read;
+        bs.stream_init = bytestream_srecord_init;
+        bs.stream_close = bytestream_srecord_close;
+        bs.stream_read = bytestream_srecord_read;
     } else if (file_type == FILE_TYPE_ASCII_HEX) {
-        bs.stream_init = byte_stream_asciihex_init;
-        bs.stream_close = byte_stream_asciihex_close;
-        bs.stream_read = byte_stream_asciihex_read;
+        bs.stream_init = bytestream_asciihex_init;
+        bs.stream_close = bytestream_asciihex_close;
+        bs.stream_read = bytestream_asciihex_read;
     } else {
-        bs.stream_init = byte_stream_binary_init;
-        bs.stream_close = byte_stream_binary_close;
-        bs.stream_read = byte_stream_binary_read;
+        bs.stream_init = bytestream_binary_init;
+        bs.stream_close = bytestream_binary_close;
+        bs.stream_read = bytestream_binary_read;
     }
 
     /* Setup the DisasmStream */
     ds.in = &bs;
     if (arch == ARCH_AVR8) {
-        ds.stream_init = disasm_stream_avr_init;
-        ds.stream_close = disasm_stream_avr_close;
-        ds.stream_read = disasm_stream_avr_read;
+        ds.stream_init = disasmstream_avr_init;
+        ds.stream_close = disasmstream_avr_close;
+        ds.stream_read = disasmstream_avr_read;
     } else if (arch == ARCH_PIC_BASELINE) {
-        ds.stream_init = disasm_stream_pic_baseline_init;
-        ds.stream_close = disasm_stream_pic_baseline_close;
-        ds.stream_read = disasm_stream_pic_baseline_read;
+        ds.stream_init = disasmstream_pic_baseline_init;
+        ds.stream_close = disasmstream_pic_baseline_close;
+        ds.stream_read = disasmstream_pic_baseline_read;
     } else if (arch == ARCH_PIC_MIDRANGE) {
-        ds.stream_init = disasm_stream_pic_midrange_init;
-        ds.stream_close = disasm_stream_pic_midrange_close;
-        ds.stream_read = disasm_stream_pic_midrange_read;
+        ds.stream_init = disasmstream_pic_midrange_init;
+        ds.stream_close = disasmstream_pic_midrange_close;
+        ds.stream_read = disasmstream_pic_midrange_read;
     } else if (arch == ARCH_PIC_MIDRANGE_ENHANCED) {
-        ds.stream_init = disasm_stream_pic_midrange_enhanced_init;
-        ds.stream_close = disasm_stream_pic_midrange_enhanced_close;
-        ds.stream_read = disasm_stream_pic_midrange_enhanced_read;
+        ds.stream_init = disasmstream_pic_midrange_enhanced_init;
+        ds.stream_close = disasmstream_pic_midrange_enhanced_close;
+        ds.stream_read = disasmstream_pic_midrange_enhanced_read;
     }
 
     /* Setup the File PrintStream */
     ps.in = &ds;
-    ps.stream_init = print_stream_file_init;
-    ps.stream_close = print_stream_file_close;
-    ps.stream_read = print_stream_file_read;
+    ps.stream_init = printstream_file_init;
+    ps.stream_close = printstream_file_close;
+    ps.stream_read = printstream_file_read;
 
     /* Initialize streams */
     if ((ret = ps.stream_init(&ps, flags)) < 0) {
         fprintf(stderr, "Error initializing streams! Error code: %d\n", ret);
-        print_stream_error_trace(&ps, &ds, &bs);
+        printstream_error_trace(&ps, &ds, &bs);
         goto cleanup_exit_failure;
     }
 
@@ -380,7 +380,7 @@ int main(int argc, const char *argv[]) {
     while ( (ret = ps.stream_read(&ps, file_out)) != STREAM_EOF ) {
         if (ret < 0) {
             fprintf(stderr, "Error occured during disassembly! Error code: %d\n", ret);
-            print_stream_error_trace(&ps, &ds, &bs);
+            printstream_error_trace(&ps, &ds, &bs);
             goto cleanup_exit_failure;
         }
     }
@@ -388,7 +388,7 @@ int main(int argc, const char *argv[]) {
     /* Close streams */
     if ((ret = ps.stream_close(&ps)) < 0) {
         fprintf(stderr, "Error closing streams! Error code: %d\n", ret);
-        print_stream_error_trace(&ps, &ds, &bs);
+        printstream_error_trace(&ps, &ds, &bs);
         goto cleanup_exit_failure;
     }
 

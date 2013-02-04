@@ -3,8 +3,8 @@
 #include <string.h>
 #include <stdio.h>
 
-#include <byte_stream.h>
-#include <disasm_stream.h>
+#include <bytestream.h>
+#include <disasmstream.h>
 #include <instruction.h>
 
 #include "avr_instruction_set.h"
@@ -14,7 +14,7 @@
 /* AVR Disassembly Stream Support */
 /******************************************************************************/
 
-struct disasm_stream_avr_state {
+struct disasmstream_avr_state {
     /* 4-byte opcode buffer */
     uint8_t data[4];
     uint32_t address[4];
@@ -23,15 +23,15 @@ struct disasm_stream_avr_state {
     int eof;
 };
 
-int disasm_stream_avr_init(struct DisasmStream *self) {
+int disasmstream_avr_init(struct DisasmStream *self) {
     /* Allocate stream state */
-    self->state = malloc(sizeof(struct disasm_stream_avr_state));
+    self->state = malloc(sizeof(struct disasmstream_avr_state));
     if (self->state == NULL) {
         self->error = "Error allocating disasm stream state!";
         return STREAM_ERROR_ALLOC;
     }
     /* Initialize stream state */
-    memset(self->state, 0, sizeof(struct disasm_stream_avr_state));
+    memset(self->state, 0, sizeof(struct disasmstream_avr_state));
 
     /* Reset the error to NULL */
     self->error = NULL;
@@ -45,7 +45,7 @@ int disasm_stream_avr_init(struct DisasmStream *self) {
     return 0;
 }
 
-int disasm_stream_avr_close(struct DisasmStream *self) {
+int disasmstream_avr_close(struct DisasmStream *self) {
     /* Free stream state memory */
     free(self->state);
 
@@ -113,7 +113,7 @@ static struct avrInstructionInfo *util_iset_lookup_by_mnemonic(char *mnemonic) {
     return NULL;
 }
 
-static int util_opbuffer_len_consecutive(struct disasm_stream_avr_state *state) {
+static int util_opbuffer_len_consecutive(struct disasmstream_avr_state *state) {
     int i, lenConsecutive;
 
     lenConsecutive = 0;
@@ -127,7 +127,7 @@ static int util_opbuffer_len_consecutive(struct disasm_stream_avr_state *state) 
     return lenConsecutive;
 }
 
-static void util_opbuffer_shift(struct disasm_stream_avr_state *state, int n) {
+static void util_opbuffer_shift(struct disasmstream_avr_state *state, int n) {
     int i, j;
 
     for (i = 0; i < n; i++) {
@@ -216,8 +216,8 @@ extern int avr_instruction_get_str_operand(struct instruction *instr, char *dest
 extern int avr_instruction_get_str_comment(struct instruction *instr, char *dest, int size, int flags);
 extern void avr_instruction_free(struct instruction *instr);
 
-int disasm_stream_avr_read(struct DisasmStream *self, struct instruction *instr) {
-    struct disasm_stream_avr_state *state = (struct disasm_stream_avr_state *)self->state;
+int disasmstream_avr_read(struct DisasmStream *self, struct instruction *instr) {
+    struct disasmstream_avr_state *state = (struct disasmstream_avr_state *)self->state;
 
     int decodeAttempts, lenConsecutive;
 

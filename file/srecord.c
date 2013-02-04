@@ -5,26 +5,26 @@
 
 #include "libGIS-1.0.5/srecord.h"
 
-#include <byte_stream.h>
+#include <bytestream.h>
 
 /******************************************************************************/
 /* Motorola S-Record file support */
 /******************************************************************************/
 
-struct byte_stream_srecord_state {
+struct bytestream_srecord_state {
     SRecord sRec;
     unsigned int availBytes;
 };
 
-int byte_stream_srecord_init(struct ByteStream *self) {
+int bytestream_srecord_init(struct ByteStream *self) {
     /* Allocate stream state */
-    self->state = malloc(sizeof(struct byte_stream_srecord_state));
+    self->state = malloc(sizeof(struct bytestream_srecord_state));
     if (self->state == NULL) {
         self->error = "Error allocating opcode stream state!";
         return STREAM_ERROR_ALLOC;
     }
     /* Initialize stream state */
-    memset(self->state, 0, sizeof(struct byte_stream_srecord_state));
+    memset(self->state, 0, sizeof(struct bytestream_srecord_state));
 
     /* Reset error string to NULL */
     self->error = NULL;
@@ -35,7 +35,7 @@ int byte_stream_srecord_init(struct ByteStream *self) {
     return 0;
 }
 
-int byte_stream_srecord_close(struct ByteStream *self) {
+int bytestream_srecord_close(struct ByteStream *self) {
     /* Free stream state memory */
     free(self->state);
 
@@ -45,8 +45,8 @@ int byte_stream_srecord_close(struct ByteStream *self) {
     return 0;
 }
 
-int byte_stream_srecord_read(struct ByteStream *self, uint8_t *data, uint32_t *address) {
-    struct byte_stream_srecord_state *state = (struct byte_stream_srecord_state *)self->state;
+int bytestream_srecord_read(struct ByteStream *self, uint8_t *data, uint32_t *address) {
+    struct bytestream_srecord_state *state = (struct bytestream_srecord_state *)self->state;
     int ret;
 
     if (state->availBytes == 0) {

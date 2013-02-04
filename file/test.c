@@ -2,13 +2,13 @@
 #include <stdlib.h>
 #include <stdio.h>
 
-#include <byte_stream.h>
+#include <bytestream.h>
 
 /******************************************************************************/
 /* Byte Stream File Test */
 /******************************************************************************/
 
-int test_byte_stream(FILE *in, int (*stream_init)(struct ByteStream *self), int (*stream_close)(struct ByteStream *self), int (*stream_read)(struct ByteStream *self, uint8_t *data, uint32_t *address)) {
+int test_bytestream(FILE *in, int (*stream_init)(struct ByteStream *self), int (*stream_close)(struct ByteStream *self), int (*stream_read)(struct ByteStream *self, uint8_t *data, uint32_t *address)) {
     struct ByteStream os;
     uint8_t data;
     uint32_t address;
@@ -20,7 +20,7 @@ int test_byte_stream(FILE *in, int (*stream_init)(struct ByteStream *self), int 
     os.stream_close = stream_close;
     os.stream_read = stream_read;
 
-    printf("Running test_byte_stream()\n\n");
+    printf("Running test_bytestream()\n\n");
 
     /* Initialize the stream */
     printf("os.stream_init(): %d\n", os.stream_init(&os));
