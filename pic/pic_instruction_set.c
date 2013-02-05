@@ -217,17 +217,17 @@ struct picInstructionInfo PIC_Instruction_Set_PIC18[] = {
 };
 
 struct picInstructionInfo *PIC_Instruction_Sets[] = {
-    [PIC_ARCH_BASELINE] (struct picInstructionInfo *)&PIC_Instruction_Set_Baseline,
-    [PIC_ARCH_MIDRANGE] (struct picInstructionInfo *)&PIC_Instruction_Set_Midrange,
-    [PIC_ARCH_MIDRANGE_ENHANCED] (struct picInstructionInfo *)&PIC_Instruction_Set_Midrange_Enhanced,
-    [PIC_ARCH_PIC18] (struct picInstructionInfo *)&PIC_Instruction_Set_PIC18,
+    [PIC_SUBARCH_BASELINE] (struct picInstructionInfo *)&PIC_Instruction_Set_Baseline,
+    [PIC_SUBARCH_MIDRANGE] (struct picInstructionInfo *)&PIC_Instruction_Set_Midrange,
+    [PIC_SUBARCH_MIDRANGE_ENHANCED] (struct picInstructionInfo *)&PIC_Instruction_Set_Midrange_Enhanced,
+    [PIC_SUBARCH_PIC18] (struct picInstructionInfo *)&PIC_Instruction_Set_PIC18,
 };
 
 /* Total number of PIC instructions */
 int PIC_TOTAL_INSTRUCTIONS[] = {
-    [PIC_ARCH_BASELINE] (sizeof(PIC_Instruction_Set_Baseline)/sizeof(PIC_Instruction_Set_Baseline[0])),
-    [PIC_ARCH_MIDRANGE] (sizeof(PIC_Instruction_Set_Midrange)/sizeof(PIC_Instruction_Set_Midrange[0])),
-    [PIC_ARCH_MIDRANGE_ENHANCED] (sizeof(PIC_Instruction_Set_Midrange_Enhanced)/sizeof(PIC_Instruction_Set_Midrange_Enhanced[0])),
-    [PIC_ARCH_PIC18] (sizeof(PIC_Instruction_Set_PIC18)/sizeof(PIC_Instruction_Set_PIC18[0])),
+    [PIC_SUBARCH_BASELINE] (sizeof(PIC_Instruction_Set_Baseline)/sizeof(PIC_Instruction_Set_Baseline[0])),
+    [PIC_SUBARCH_MIDRANGE] (sizeof(PIC_Instruction_Set_Midrange)/sizeof(PIC_Instruction_Set_Midrange[0])),
+    [PIC_SUBARCH_MIDRANGE_ENHANCED] (sizeof(PIC_Instruction_Set_Midrange_Enhanced)/sizeof(PIC_Instruction_Set_Midrange_Enhanced[0])),
+    [PIC_SUBARCH_PIC18] (sizeof(PIC_Instruction_Set_PIC18)/sizeof(PIC_Instruction_Set_PIC18[0])),
 };
 

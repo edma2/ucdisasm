@@ -18,6 +18,15 @@
 /* File PrintStream Support */
 #include "printstream_file.h"
 
+#define DEBUG
+//#define DEBUG_FILE_ATMEL_GENERIC
+//#define DEBUG_FILE_INTEL_HEX
+//#define DEBUG_FILE_MOTOROLA_SRECORD
+//#define DEBUG_FILE_BINARY
+//#define DEBUG_FILE_ASCII_HEX
+//#define DEBUG_ARCH_AVR
+#define DEBUG_ARCH_PIC
+
 /* Supported file types */
 enum {
     FILE_TYPE_ATMEL_GENERIC,
@@ -64,6 +73,41 @@ static struct option long_options[] = {
     {"version", no_argument, NULL, 'v'},
     {NULL, 0, NULL, 0}
 };
+
+void debug(FILE *in) {
+    int success = 1;
+
+    #if   defined DEBUG_FILE_ATMEL_GENERIC
+        #include <file/test/test_bytestream.h>
+        if (test_bytestream(in, bytestream_generic_init, bytestream_generic_close, bytestream_generic_read)) success = 0;
+    #elif defined DEBUG_FILE_INTEL_HEX
+        #include <file/test/test_bytestream.h>
+        if (test_bytestream(in, bytestream_ihex_init, bytestream_ihex_close, bytestream_ihex_read)) success = 0;
+    #elif defined DEBUG_FILE_MOTOROLA_SRECORD
+        #include <file/test/test_bytestream.h>
+        if (test_bytestream(in, bytestream_srecord_init, bytestream_srecord_close, bytestream_srecord_read)) success = 0;
+    #elif defined DEBUG_FILE_BINARY
+        #include <file/test/test_bytestream.h>
+        if (test_bytestream(in, bytestream_binary_init, bytestream_binary_close, bytestream_binary_read)) success = 0;
+    #elif defined DEBUG_FILE_ASCII_HEX
+        #include <file/test/test_bytestream.h>
+        if (test_bytestream(in, bytestream_asciihex_init, bytestream_asciihex_close, bytestream_asciihex_read)) success = 0;
+    #endif
+
+    #if   defined DEBUG_ARCH_AVR
+        #include <avr/test/test_avr.h>
+        if (test_disasm_avr_unit_tests()) success = 0;
+        if (test_print_avr_unit_tests()) success = 0;
+    #endif
+
+    #if   defined DEBUG_ARCH_PIC
+        #include <pic/test/test_pic.h>
+        if (test_disasm_pic_unit_tests()) success = 0;
+        if (test_print_pic_unit_tests()) success = 0;
+    #endif
+
+    if (success) printf("All tests passed!\n"); else printf("Some tests failed...\n");
+}
 
 static void printUsage(const char *programName) {
     printf("Usage: %s -a <architecture> [option(s)] <file>\n", programName);
@@ -278,25 +322,9 @@ int main(int argc, const char *argv[]) {
 
     /*** Debug ***/
 
-    #ifdef DEBUG_bytestream
-        /* Test opcode stream */
-        if (file_type == FILE_TYPE_ATMEL_GENERIC)
-            test_bytestream(file_in, bytestream_generic_init, bytestream_generic_close, bytestream_generic_read);
-        else if (file_type == FILE_TYPE_INTEL_HEX)
-            test_bytestream(file_in, bytestream_ihex_init, bytestream_ihex_close, bytestream_ihex_read);
-        else if (file_type == FILE_TYPE_MOTOROLA_SRECORD)
-            test_bytestream(file_in, bytestream_srecord_init, bytestream_srecord_close, bytestream_srecord_read);
-        else if (file_type == FILE_TYPE_BINARY)
-            test_bytestream(file_in, bytestream_binary_init, bytestream_binary_close, bytestream_binary_read);
-        goto cleanup_exit_success;
-    #elif defined DEBUG_disasmstream
-        /* Test Disasm Stream */
-        test_disasmstream_unit_tests();
-        goto cleanup_exit_success;
-    #elif defined DEBUG_printstream
-        /* Test Print Stream */
-        test_printstream();
-        goto cleanup_exit_success;
+    #ifdef DEBUG
+    debug(file_in);
+    goto cleanup_exit_success;
     #endif
 
     /*** Setup Formatting Flags ***/

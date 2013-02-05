@@ -102,17 +102,6 @@ static struct avrInstructionInfo *util_iset_lookup_by_opcode(uint16_t opcode) {
     return NULL;
 }
 
-static struct avrInstructionInfo *util_iset_lookup_by_mnemonic(char *mnemonic) {
-    int i;
-
-    for (i = 0; i < AVR_TOTAL_INSTRUCTIONS; i++) {
-        if (strcmp(mnemonic, AVR_Instruction_Set[i].mnemonic) == 0)
-            return &AVR_Instruction_Set[i];
-    }
-
-    return NULL;
-}
-
 static int util_opbuffer_len_consecutive(struct disasmstream_avr_state *state) {
     int i, lenConsecutive;
 
@@ -350,6 +339,7 @@ int disasmstream_avr_read(struct DisasmStream *self, struct instruction *instr) 
                 } else if ((lenConsecutive == 3 && (state->len > 3 || state->eof)) ||
                            (lenConsecutive == 2 && (state->len > 2 || state->eof))) {
                     /* Return a raw .DW word "instruction" */
+                    instructionInfo = &AVR_Instruction_Set[AVR_ISET_INDEX_WORD];
                     instr->instructionDisasm = malloc(sizeof(struct avrInstructionDisasm));
                     if (instr->instructionDisasm == NULL) {
                         self->error = "Error allocating memory for disassembled instruction!";
@@ -361,7 +351,7 @@ int disasmstream_avr_read(struct DisasmStream *self, struct instruction *instr) 
                     instructionDisasm->address = state->address[0];
                     instructionDisasm->opcode[0] = state->data[0];
                     instructionDisasm->opcode[1] = state->data[1];
-                    instructionDisasm->instructionInfo = &AVR_Instruction_Set[AVR_ISET_INDEX_WORD];
+                    instructionDisasm->instructionInfo = instructionInfo;
                     /* Disassemble the operands */
                     for (i = 0; i < instructionInfo->numOperands; i++) {
                         /* Extract the operand bits */

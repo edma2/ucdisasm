@@ -51,15 +51,15 @@ static int disasmstream_pic_init(struct DisasmStream *self, int subarch) {
 /* Wrapper functions for different sub-architectures */
 
 int disasmstream_pic_baseline_init(struct DisasmStream *self) {
-    return disasmstream_pic_init(self, PIC_ARCH_BASELINE);
+    return disasmstream_pic_init(self, PIC_SUBARCH_BASELINE);
 }
 
 int disasmstream_pic_midrange_init(struct DisasmStream *self) {
-    return disasmstream_pic_init(self, PIC_ARCH_MIDRANGE);
+    return disasmstream_pic_init(self, PIC_SUBARCH_MIDRANGE);
 }
 
 int disasmstream_pic_midrange_enhanced_init(struct DisasmStream *self) {
-    return disasmstream_pic_init(self, PIC_ARCH_MIDRANGE_ENHANCED);
+    return disasmstream_pic_init(self, PIC_SUBARCH_MIDRANGE_ENHANCED);
 }
 
 int disasmstream_pic_close(struct DisasmStream *self) {
@@ -113,17 +113,6 @@ static struct picInstructionInfo *util_iset_lookup_by_opcode(int subarch, uint16
 
         /* Compare left over instruction bits with the instruction mask */
         if (instructionBits == PIC_Instruction_Sets[subarch][i].instructionMask)
-            return &PIC_Instruction_Sets[subarch][i];
-    }
-
-    return NULL;
-}
-
-static struct picInstructionInfo *util_iset_lookup_by_mnemonic(int subarch, char *mnemonic) {
-    int i;
-
-    for (i = 0; i < PIC_TOTAL_INSTRUCTIONS[subarch]; i++) {
-        if (strcmp(mnemonic, PIC_Instruction_Sets[subarch][i].mnemonic) == 0)
             return &PIC_Instruction_Sets[subarch][i];
     }
 
