@@ -1,6 +1,7 @@
 #include <stdint.h>
 #include <stdio.h>
 
+/* Exposed state so test functions can load test data / address vectors */
 struct bytestream_debug_state {
     uint8_t *data;
     uint32_t *address;

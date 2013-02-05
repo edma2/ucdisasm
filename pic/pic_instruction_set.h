@@ -27,10 +27,10 @@ enum {
 
 /* Enumeration for supported PIC sub-architectures */
 enum {
-    PIC_ARCH_BASELINE,
-    PIC_ARCH_MIDRANGE,
-    PIC_ARCH_MIDRANGE_ENHANCED,
-    PIC_ARCH_PIC18,
+    PIC_SUBARCH_BASELINE,
+    PIC_SUBARCH_MIDRANGE,
+    PIC_SUBARCH_MIDRANGE_ENHANCED,
+    PIC_SUBARCH_PIC18,
 };
 
 /* Structure for each instruction entry in the instruction set */
