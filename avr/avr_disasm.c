@@ -380,7 +380,9 @@ int disasmstream_avr_read(struct DisasmStream *self, struct instruction *instr) 
         } else if (ret < 0) {
             self->error = "Error in opcode stream read!";
             return STREAM_ERROR_INPUT;
-        } else if (ret == 0) {
+        }
+
+        if (ret == 0) {
             /* If we have an opcode buffer overflow (this should never happen
              * if the decoding logic above is correct) */
             if (state->len == sizeof(state->data)) {
