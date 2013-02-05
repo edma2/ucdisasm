@@ -21,9 +21,5 @@ int disasmstream_pic_midrange_enhanced_init(struct DisasmStream *self);
 #define disasmstream_pic_midrange_enhanced_close    disasmstream_pic_close
 #define disasmstream_pic_midrange_enhanced_read     disasmstream_pic_read
 
-/* PIC Instruction Print Support */
-int pic_instruction_print_origin(struct instruction *instr, FILE *out, int flags);
-int pic_instruction_print(struct instruction *instr, FILE *out, int flags);
-
 #endif
 
