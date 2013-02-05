@@ -38,6 +38,7 @@ struct picInstructionInfo {
     char mnemonic[7];
     unsigned int width;
     uint16_t instructionMask;
+    uint16_t dontcareMask;
     int numOperands;
     uint16_t operandMasks[3];
     int operandTypes[3];

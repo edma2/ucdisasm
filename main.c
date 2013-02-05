@@ -24,7 +24,7 @@
 //#define DEBUG_FILE_MOTOROLA_SRECORD
 //#define DEBUG_FILE_BINARY
 //#define DEBUG_FILE_ASCII_HEX
-//#define DEBUG_ARCH_AVR
+#define DEBUG_ARCH_AVR
 #define DEBUG_ARCH_PIC
 
 /* Supported file types */

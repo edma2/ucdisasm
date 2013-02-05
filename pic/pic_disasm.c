@@ -48,7 +48,7 @@ static int disasmstream_pic_init(struct DisasmStream *self, int subarch) {
     return 0;
 }
 
-/* Wrapper functions for different sub-architectures */
+/* Wrapper init functions for different sub-architectures */
 
 int disasmstream_pic_baseline_init(struct DisasmStream *self) {
     return disasmstream_pic_init(self, PIC_SUBARCH_BASELINE);
@@ -106,6 +106,9 @@ static struct picInstructionInfo *util_iset_lookup_by_opcode(int subarch, uint16
 
     for (i = 0; i < PIC_TOTAL_INSTRUCTIONS[subarch]; i++) {
         instructionBits = opcode;
+
+        /* Mask out the don't care pits */
+        instructionBits &= ~(PIC_Instruction_Sets[subarch][i].dontcareMask);
 
         /* Mask out the operands from the opcode */
         for (j = 0; j < PIC_Instruction_Sets[subarch][i].numOperands; j++)
@@ -171,8 +174,12 @@ static int32_t util_disasm_operand(struct picInstructionInfo *instruction, uint3
             } else {
                 operandDisasm = (int32_t) ( operand & instruction->operandMasks[index] );
             }
-            /* Multiply by two to point to a byte address */
-            operandDisasm *= 2;
+
+            /* If this is an address */
+            if (instruction->operandTypes[index] == OPERAND_RELATIVE_ADDRESS) {
+                /* Multiply by two to point to a byte address */
+                operandDisasm *= 2;
+            }
 
             break;
         default:
@@ -301,7 +308,9 @@ int disasmstream_pic_read(struct DisasmStream *self, struct instruction *instr) 
         } else if (ret < 0) {
             self->error = "Error in opcode stream read!";
             return STREAM_ERROR_INPUT;
-        } else if (ret == 0) {
+        }
+
+        if (ret == 0) {
             /* If we have an opcode buffer overflow (this should never happen
              * if the decoding logic above is correct) */
             if (state->len == sizeof(state->data)) {
