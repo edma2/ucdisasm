@@ -120,14 +120,15 @@ int printstream_file_read(struct PrintStream *self, FILE *out) {
     print_tab();
 
     /* Print the operands */
-    for (i = 0; i < instr.get_num_operands(&instr); i++) {
-        /* Print dat comma, yea */
-        if (i > 0 && i < instr.get_num_operands(&instr))
-            print_comma();
-
+    for (i = 0; ; i++) {
         /* Print this operand index i */
-        instr.get_str_operand(&instr, str, sizeof(str), i, state->flags);
-        print_str();
+        if (instr.get_str_operand(&instr, str, sizeof(str), i, state->flags) > 0) {
+            if (i > 0) print_comma();
+            print_str();
+        /* No more operands to print */
+        } else {
+            break;
+        }
     }
 
     /* Print a comment (e.g. destination address comment) */
