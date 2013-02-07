@@ -86,7 +86,7 @@ int avr_instruction_get_str_opcodes(struct instruction *instr, char *dest, int s
     else if (instructionDisasm->instructionInfo->width == 4)
         return snprintf(dest, size, "%02x %02x %02x %02x", instructionDisasm->opcode[3], instructionDisasm->opcode[2], instructionDisasm->opcode[1], instructionDisasm->opcode[0]);
 
-    return snprintf(dest, size, "");
+    return 0;
 }
 
 int avr_instruction_get_str_mnemonic(struct instruction *instr, char *dest, int size, int flags) {
@@ -99,7 +99,7 @@ int avr_instruction_get_str_operand(struct instruction *instr, char *dest, int s
     int i;
 
     if (index < 0 || index > instructionDisasm->instructionInfo->numOperands - 1)
-        return snprintf(dest, size, "");
+        return 0;
 
     switch (instructionDisasm->instructionInfo->operandTypes[index]) {
         case OPERAND_REGISTER:
@@ -181,7 +181,7 @@ int avr_instruction_get_str_operand(struct instruction *instr, char *dest, int s
             break;
     }
 
-    return snprintf(dest, size, "");
+    return 0;
 }
 
 int avr_instruction_get_str_comment(struct instruction *instr, char *dest, int size, int flags) {
@@ -195,7 +195,7 @@ int avr_instruction_get_str_comment(struct instruction *instr, char *dest, int s
         }
     }
 
-    return snprintf(dest, size, "");
+    return 0;
 }
 
 void avr_instruction_free(struct instruction *instr) {

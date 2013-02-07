@@ -16,7 +16,7 @@
 #define PIC_PREFIX_DATA_DEC             ""      /* movlw 6 */
 #define PIC_PREFIX_ABSOLUTE_ADDRESS     "0x"    /* call 0xb6 */
 #define PIC_PREFIX_RELATIVE_ADDRESS     "."
-#define PIC_PREFIX_INDF_INDEX           "INDF"  /* INDF0, INDF1, ... */
+#define PIC_PREFIX_INDF_INDEX           "FSR"   /* INDF0, INDF1, ... */
 #define PIC_PREFIX_RAW_WORD             "0x"    /* data 0xabcd */
 #define PIC_PREFIX_RAW_BYTE             "0x"    /* .db 0xab */
 #define PIC_PREFIX_ADDRESS_LABEL        "A_"    /* A_0004: */
@@ -84,7 +84,7 @@ int pic_instruction_get_str_opcodes(struct instruction *instr, char *dest, int s
     else if (instructionDisasm->instructionInfo->width == 2)
         return snprintf(dest, size, "%02x %02x      ", instructionDisasm->opcode[1], instructionDisasm->opcode[0]);
 
-    return snprintf(dest, size, "");
+    return 0;
 }
 
 int pic_instruction_get_str_mnemonic(struct instruction *instr, char *dest, int size, int flags) {
@@ -96,7 +96,7 @@ int pic_instruction_get_str_operand(struct instruction *instr, char *dest, int s
     struct picInstructionDisasm *instructionDisasm = (struct picInstructionDisasm *)instr->instructionDisasm;
 
     if (index < 0 || index > instructionDisasm->instructionInfo->numOperands - 1)
-        return snprintf(dest, size, "");
+        return 0;
 
     /* Print the operand */
     switch (instructionDisasm->instructionInfo->operandTypes[index]) {
@@ -170,13 +170,46 @@ int pic_instruction_get_str_operand(struct instruction *instr, char *dest, int s
             break;
 
         case OPERAND_INDF_INDEX:
-        case OPERAND_SIGNED_LITERAL:
+            if (index == 0 && instructionDisasm->instructionInfo->numOperands == 2) {
+                /* OPERAND_INDF_INDEX, OPERAND_INCREMENT_MODE */
+                if (instructionDisasm->instructionInfo->operandTypes[1] == OPERAND_INCREMENT_MODE) {
+                    switch (instructionDisasm->operandDisasms[1]) {
+                        case 0:
+                            return snprintf(dest, size, "++%s%d", PIC_PREFIX_INDF_INDEX, instructionDisasm->operandDisasms[0]);
+                        case 1:
+                            return snprintf(dest, size, "--%s%d", PIC_PREFIX_INDF_INDEX, instructionDisasm->operandDisasms[0]);
+                        case 2:
+                            return snprintf(dest, size, "%s%d++", PIC_PREFIX_INDF_INDEX, instructionDisasm->operandDisasms[0]);
+                        case 3:
+                            return snprintf(dest, size, "%s%d--", PIC_PREFIX_INDF_INDEX, instructionDisasm->operandDisasms[0]);
+                        default:
+                            break;
+                    }
+                /* OPERAND_INDF_INDEX, OPERAND_SIGNED_LITERAL */
+                } else if (instructionDisasm->instructionInfo->operandTypes[1] == OPERAND_SIGNED_LITERAL) {
+                    return snprintf(dest, size, "%d[%s%d]", instructionDisasm->operandDisasms[1], PIC_PREFIX_INDF_INDEX, instructionDisasm->operandDisasms[0]);
+                }
+            }
+            break;
 
+        case OPERAND_SIGNED_LITERAL:
+            /* If this was an OPERAND_INDF_INDEX, OPERAND_SIGNED_LITERAL, we
+             * handled it in OPERAND_INDF_INDEX */
+            if (index == 1 && instructionDisasm->instructionInfo->numOperands == 2 && instructionDisasm->instructionInfo->operandTypes[0] == OPERAND_INDF_INDEX) {
+                break;
+            } else {
+                return snprintf(dest, size, "%s%d", PIC_PREFIX_DATA_DEC, instructionDisasm->operandDisasms[index]);
+            }
+            break;
+
+        case OPERAND_INCREMENT_MODE:
+            /* Handled in OPERAND_INDF_INDEX */
         default:
             break;
     }
 
-    return snprintf(dest, size, "");
+    /* Return 0 for no more operands */
+    return 0;
 }
 
 int pic_instruction_get_str_comment(struct instruction *instr, char *dest, int size, int flags) {
@@ -189,7 +222,7 @@ int pic_instruction_get_str_comment(struct instruction *instr, char *dest, int s
             return snprintf(dest, size, "; %s%x", PIC_PREFIX_ABSOLUTE_ADDRESS, instructionDisasm->operandDisasms[i] + instructionDisasm->address + 2);
     }
 
-    return snprintf(dest, size, "");
+    return 0;
 }
 
 void pic_instruction_free(struct instruction *instr) {
