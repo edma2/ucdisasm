@@ -39,7 +39,12 @@ static int test_disasmstream(int subarch, uint8_t *test_data, uint32_t *test_add
         ds.stream_init = disasmstream_pic_midrange_enhanced_init;
         ds.stream_close = disasmstream_pic_midrange_enhanced_close;
         ds.stream_read = disasmstream_pic_midrange_enhanced_read;
+    } else if (subarch == PIC_SUBARCH_PIC18) {
+        ds.stream_init = disasmstream_pic_pic18_init;
+        ds.stream_close = disasmstream_pic_pic18_close;
+        ds.stream_read = disasmstream_pic_pic18_read;
     }
+
 
     /* Initialize the stream */
     ret = ds.stream_init(&ds);
@@ -188,8 +193,8 @@ int test_disasm_pic_unit_tests(void) {
                                                 {0x08, {0}, lookup(PIC_SUBARCH_BASELINE, "bsf"), {0x15, 0x3}},
                                                 {0x0a, {0}, lookup(PIC_SUBARCH_BASELINE, "btfsc"), {0x15, 0x2}},
                                                 {0x0c, {0}, lookup(PIC_SUBARCH_BASELINE, "andlw"), {0xfe}},
-                                                {0x0e, {0}, lookup(PIC_SUBARCH_BASELINE, "call"), {0x50}},
-                                                {0x10, {0}, lookup(PIC_SUBARCH_BASELINE, "goto"), {0x54}},
+                                                {0x0e, {0}, lookup(PIC_SUBARCH_BASELINE, "call"), {0xa0}},
+                                                {0x10, {0}, lookup(PIC_SUBARCH_BASELINE, "goto"), {0xa8}},
                                                 {0x12, {0}, lookup(PIC_SUBARCH_BASELINE, "sleep"), {0}},
                                                 {0x14, {0}, lookup(PIC_SUBARCH_BASELINE, "clrwdt"), {0}},
                                             };
@@ -212,8 +217,8 @@ int test_disasm_pic_unit_tests(void) {
                                                 {0x08, {0}, lookup(PIC_SUBARCH_MIDRANGE, "bsf"), {0x15, 0x3}},
                                                 {0x0a, {0}, lookup(PIC_SUBARCH_MIDRANGE, "btfsc"), {0x15, 0x2}},
                                                 {0x0c, {0}, lookup(PIC_SUBARCH_MIDRANGE, "andlw"), {0xfe}},
-                                                {0x0e, {0}, lookup(PIC_SUBARCH_MIDRANGE, "call"), {0x600}},
-                                                {0x10, {0}, lookup(PIC_SUBARCH_MIDRANGE, "goto"), {0x604}},
+                                                {0x0e, {0}, lookup(PIC_SUBARCH_MIDRANGE, "call"), {0xc00}},
+                                                {0x10, {0}, lookup(PIC_SUBARCH_MIDRANGE, "goto"), {0xc08}},
                                                 {0x12, {0}, lookup(PIC_SUBARCH_MIDRANGE, "sleep"), {0}},
                                                 {0x14, {0}, lookup(PIC_SUBARCH_MIDRANGE, "clrwdt"), {0}},
                                             };
@@ -239,8 +244,8 @@ int test_disasm_pic_unit_tests(void) {
                                                 {0x08, {0}, lookup(PIC_SUBARCH_MIDRANGE_ENHANCED, "bsf"), {0x15, 0x3}},
                                                 {0x0a, {0}, lookup(PIC_SUBARCH_MIDRANGE_ENHANCED, "btfsc"), {0x15, 0x2}},
                                                 {0x0c, {0}, lookup(PIC_SUBARCH_MIDRANGE_ENHANCED, "andlw"), {0xfe}},
-                                                {0x0e, {0}, lookup(PIC_SUBARCH_MIDRANGE_ENHANCED, "call"), {0x600}},
-                                                {0x10, {0}, lookup(PIC_SUBARCH_MIDRANGE_ENHANCED, "goto"), {0x604}},
+                                                {0x0e, {0}, lookup(PIC_SUBARCH_MIDRANGE_ENHANCED, "call"), {0xc00}},
+                                                {0x10, {0}, lookup(PIC_SUBARCH_MIDRANGE_ENHANCED, "goto"), {0xc08}},
                                                 {0x12, {0}, lookup(PIC_SUBARCH_MIDRANGE_ENHANCED, "sleep"), {0}},
                                                 {0x14, {0}, lookup(PIC_SUBARCH_MIDRANGE_ENHANCED, "clrwdt"), {0}},
                                                 {0x16, {0}, lookup(PIC_SUBARCH_MIDRANGE_ENHANCED, "lslf"), {0x15, 0x1}},
