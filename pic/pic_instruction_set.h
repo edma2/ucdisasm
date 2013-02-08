@@ -22,7 +22,11 @@ enum {
     OPERAND_SIGNED_LITERAL,
     OPERAND_FSR_INDEX,
     OPERAND_INCREMENT_MODE,
-    OPERAND_INDF_INDEX
+    OPERAND_INDF_INDEX,
+    /* PIC18 Operands */
+    OPERAND_LONG_ABSOLUTE_ADDRESS,
+    OPERAND_LONG_LITERAL,
+    OPERAND_BIT_FAST_CALLRETURN,
 };
 
 /* Enumeration for supported PIC sub-architectures */
@@ -47,7 +51,7 @@ struct picInstructionInfo {
 /* Structure for a disassembled instruction */
 struct picInstructionDisasm {
     uint32_t address;
-    uint8_t opcode[2];
+    uint8_t opcode[4];
     struct picInstructionInfo *instructionInfo;
     int32_t operandDisasms[3];
 };

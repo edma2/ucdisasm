@@ -42,6 +42,7 @@ enum {
     ARCH_PIC_BASELINE,
     ARCH_PIC_MIDRANGE,
     ARCH_PIC_MIDRANGE_ENHANCED,
+    ARCH_PIC_PIC18,
 };
 
 /* getopt flags for some long options that don't have a short option equivalent */
@@ -140,7 +141,8 @@ static void printUsage(const char *programName) {
   Atmel AVR8                avr\n\
   PIC Baseline              pic-baseline\n\
   PIC Midrange              pic-midrange\n\
-  PIC Midrange Enhanced     pic-enhanced\n\n");
+  PIC Midrange Enhanced     pic-enhanced\n\
+  PIC PIC18                 pic-18\n\n");
     printf("Supported file types:\n\
   Atmel Generic             generic\n\
   Intel HEX8                ihex\n\
@@ -255,6 +257,8 @@ int main(int argc, const char *argv[]) {
             arch = ARCH_PIC_MIDRANGE;
         else if (strcasecmp(arch_str, "pic-enhanced") == 0)
             arch = ARCH_PIC_MIDRANGE_ENHANCED;
+        else if (strcasecmp(arch_str, "pic-18") == 0)
+            arch = ARCH_PIC_PIC18;
         else {
             fprintf(stderr, "Unknown architecture %s.\n", arch_str);
             fprintf(stderr, "See program help/usage for supported architectures.\n");
@@ -389,6 +393,10 @@ int main(int argc, const char *argv[]) {
         ds.stream_init = disasmstream_pic_midrange_enhanced_init;
         ds.stream_close = disasmstream_pic_midrange_enhanced_close;
         ds.stream_read = disasmstream_pic_midrange_enhanced_read;
+    } else if (arch == ARCH_PIC_PIC18) {
+        ds.stream_init = disasmstream_pic_pic18_init;
+        ds.stream_close = disasmstream_pic_pic18_close;
+        ds.stream_read = disasmstream_pic_pic18_read;
     }
 
     /* Setup the File PrintStream */

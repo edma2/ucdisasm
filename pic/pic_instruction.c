@@ -120,6 +120,7 @@ int pic_instruction_get_str_operand(struct instruction *instr, char *dest, int s
             return snprintf(dest, size, "%s%02x", PIC_PREFIX_RAW_BYTE, instructionDisasm->operandDisasms[index]);
             break;
         case OPERAND_ABSOLUTE_ADDRESS:
+        case OPERAND_LONG_ABSOLUTE_ADDRESS:
             /* If we have address labels turned on, replace the relative
              * address with the appropriate address label */
             if (flags & PRINT_FLAG_ASSEMBLY) {
@@ -129,6 +130,7 @@ int pic_instruction_get_str_operand(struct instruction *instr, char *dest, int s
             }
             break;
         case OPERAND_LITERAL:
+        case OPERAND_LONG_LITERAL:
             if (flags & PRINT_FLAG_DATA_BIN) {
                 /* Data representation binary */
                 char binary[9];
@@ -204,6 +206,13 @@ int pic_instruction_get_str_operand(struct instruction *instr, char *dest, int s
 
         case OPERAND_INCREMENT_MODE:
             /* Handled in OPERAND_INDF_INDEX */
+
+        case OPERAND_BIT_FAST_CALLRETURN:
+            if (instructionDisasm->operandDisasms[index] == 1)
+                return snprintf(dest, size, "%d", instructionDisasm->operandDisasms[index]);
+            else
+                return 0;
+
         default:
             break;
     }

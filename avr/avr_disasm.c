@@ -133,10 +133,10 @@ static void util_opbuffer_shift(struct disasmstream_avr_state *state, int n) {
     }
 }
 
-static int32_t util_disasm_operand(uint32_t operand, int operandType) {
+static int32_t util_disasm_operand(struct avrInstructionInfo *instruction, uint32_t operand, int index) {
     int32_t operandDisasm;
 
-    switch (operandType) {
+    switch (instruction->operandTypes[index]) {
         case OPERAND_BRANCH_ADDRESS:
             /* Relative branch address is 7 bits, two's complement form */
 
@@ -291,7 +291,7 @@ int disasmstream_avr_read(struct DisasmStream *self, struct instruction *instr) 
                     /* Extract the operand bits */
                     operand = util_bits_data_from_mask(opcode, instructionInfo->operandMasks[i]);
                     /* Disassemble the operand */
-                    instructionDisasm->operandDisasms[i] = util_disasm_operand(operand, instructionInfo->operandTypes[i]);
+                    instructionDisasm->operandDisasms[i] = util_disasm_operand(instructionInfo, operand, i);
                 }
                 /* Shift out the processed byte(s) from our opcode buffer */
                 util_opbuffer_shift(state, 2);
@@ -326,7 +326,7 @@ int disasmstream_avr_read(struct DisasmStream *self, struct instruction *instr) 
                             operand = (uint32_t)(operand << 16) | (uint32_t)(state->data[3] << 8) | (uint32_t)(state->data[2]);
 
                         /* Disassemble the operand */
-                        instructionDisasm->operandDisasms[i] = util_disasm_operand(operand, instructionInfo->operandTypes[i]);
+                        instructionDisasm->operandDisasms[i] = util_disasm_operand(instructionInfo, operand, i);
                     }
                     /* Shift out the processed byte(s) from our opcode buffer */
                     util_opbuffer_shift(state, 4);
@@ -357,7 +357,7 @@ int disasmstream_avr_read(struct DisasmStream *self, struct instruction *instr) 
                         /* Extract the operand bits */
                         operand = util_bits_data_from_mask(opcode, instructionInfo->operandMasks[i]);
                         /* Disassemble the operand */
-                        instructionDisasm->operandDisasms[i] = util_disasm_operand(operand, instructionInfo->operandTypes[i]);
+                        instructionDisasm->operandDisasms[i] = util_disasm_operand(instructionInfo, operand, i);
                     }
                     /* Shift out the processed byte(s) from our opcode buffer */
                     util_opbuffer_shift(state, 2);
