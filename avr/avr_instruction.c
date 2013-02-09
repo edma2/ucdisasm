@@ -96,7 +96,6 @@ int avr_instruction_get_str_mnemonic(struct instruction *instr, char *dest, int 
 
 int avr_instruction_get_str_operand(struct instruction *instr, char *dest, int size, int index, int flags) {
     struct avrInstructionDisasm *instructionDisasm = (struct avrInstructionDisasm *)instr->instructionDisasm;
-    int i;
 
     if (index < 0 || index > instructionDisasm->instructionInfo->numOperands - 1)
         return 0;

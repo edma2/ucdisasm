@@ -1,6 +1,7 @@
 #include <stdint.h>
 #include <stdio.h>
 #include <string.h>
+#include <stdlib.h>
 
 #include <bytestream.h>
 #include <disasmstream.h>
@@ -58,6 +59,8 @@ static int test_disasmstream(uint8_t *test_data, uint32_t *test_address, unsigne
         }
     }
 
+    printf("\tds.stream_read() read %d instructions\n", *output_len);
+
     /* Close the stream */
     ret = ds.stream_close(&ds);
     printf("\tds.stream_close(): %d\n", ret);
@@ -90,10 +93,10 @@ static int test_disasm_avr_unit_test_run(char *name, uint8_t *test_data, uint32_
 
     /* Compare number of disassembled instructions */
     if (len != expected_len) {
-        printf("\tFAILURE len != expected_len\n\n");
+        printf("\tFAILURE len (%d) != expected_len (%d)\n\n", len, expected_len);
         return -1;
     }
-    printf("\tSUCCESS len == expected_len\n");
+    printf("\tSUCCESS len (%d) == expected_len (%d)\n", len, expected_len);
 
     success = 1;
 
@@ -132,6 +135,9 @@ static int test_disasm_avr_unit_test_run(char *name, uint8_t *test_data, uint32_
                 printf("\tSUCCESS instr %d operand %d:\t0x%04x, \texpected 0x%04x\n", i, j, instructionDisasm->operandDisasms[j], expected_instructionDisasms[i].operandDisasms[j]);
             }
         }
+
+        /* Free instruction */
+        instrs[i].free(&instrs[i]);
     }
 
     if (success) {
@@ -152,7 +158,10 @@ static struct avrInstructionInfo *util_iset_lookup_by_mnemonic(char *mnemonic) {
             return &AVR_Instruction_Set[i];
     }
 
-    return NULL;
+    printf("Error! Could not find instruction \"%s\"!\n", mnemonic);
+    exit(-1);
+
+    return &AVR_Instruction_Set[AVR_ISET_INDEX_WORD];
 }
 
 /******************************************************************************/

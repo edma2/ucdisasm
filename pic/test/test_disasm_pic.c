@@ -1,6 +1,7 @@
 #include <stdint.h>
 #include <stdio.h>
 #include <string.h>
+#include <stdlib.h>
 
 #include <bytestream.h>
 #include <disasmstream.h>
@@ -73,6 +74,8 @@ static int test_disasmstream(int subarch, uint8_t *test_data, uint32_t *test_add
         }
     }
 
+    printf("\tds.stream_read() read %d instructions\n", *output_len);
+
     /* Close the stream */
     ret = ds.stream_close(&ds);
     printf("\tds.stream_close(): %d\n", ret);
@@ -88,7 +91,7 @@ static int test_disasmstream(int subarch, uint8_t *test_data, uint32_t *test_add
 
 static int test_disasm_pic_unit_test_run(char *name, int subarch, uint8_t *test_data, uint32_t *test_address, unsigned int test_len, struct picInstructionDisasm *expected_instructionDisasms, unsigned int expected_len) {
     struct picInstructionDisasm *instructionDisasm;
-    struct instruction instrs[32];
+    struct instruction instrs[48];
     unsigned int len;
     int ret, i, j;
     int success;
@@ -105,16 +108,18 @@ static int test_disasm_pic_unit_test_run(char *name, int subarch, uint8_t *test_
 
     /* Compare number of disassembled instructions */
     if (len != expected_len) {
-        printf("\tFAILURE len != expected_len\n\n");
+        printf("\tFAILURE len (%d) != expected_len (%d)\n\n", len, expected_len);
         return -1;
     }
-    printf("\tSUCCESS len == expected_len\n");
+    printf("\tSUCCESS len (%d) == expected_len (%d)\n", len, expected_len);
 
     success = 1;
 
     /* Compare each disassembled instruction */
     for (i = 0; i < expected_len; i++) {
         instructionDisasm = (struct picInstructionDisasm *)instrs[i].instructionDisasm;
+
+        printf("\n");
 
         /* Compare instruction address */
         if (instructionDisasm->address != expected_instructionDisasms[i].address) {
@@ -147,6 +152,9 @@ static int test_disasm_pic_unit_test_run(char *name, int subarch, uint8_t *test_
                 printf("\tSUCCESS instr %d operand %d:\t0x%04x, \texpected 0x%04x\n", i, j, instructionDisasm->operandDisasms[j], expected_instructionDisasms[i].operandDisasms[j]);
             }
         }
+
+        /* Free instruction */
+        instrs[i].free(&instrs[i]);
     }
 
     if (success) {
@@ -167,7 +175,10 @@ static struct picInstructionInfo *util_iset_lookup_by_mnemonic(int subarch, char
             return &PIC_Instruction_Sets[subarch][i];
     }
 
-    return NULL;
+    printf("Error! Could not find instruction \"%s\"!\n", mnemonic);
+    exit(-1);
+
+    return &PIC_Instruction_Sets[subarch][PIC_ISET_INDEX_WORD(subarch)];
 }
 
 /******************************************************************************/
@@ -266,6 +277,58 @@ int test_disasm_pic_unit_tests(void) {
             passedTests++;
         numTests++;
 
+    }
+
+    /* Check Sample PIC18 Program */
+    /* a:  clrf 0x31, 1; movwf 0x20, 0; cpfsgt 0x35, 1; decf 0x15, 0, 0;
+     * addwf 0x15, 0, 1; incfsz 0x15, 1, 0; movf 0x15, 1, 1;
+     * movff 0x123, 0x256; bcf 0x15, 3, 1; btfsc 0x15, 2, 0; btg 0x15, 1, 1;
+     * b:  bc b; bnov c; bra a; c:  clrwdt; daw; sleep; nop; call a, 1;
+     * call a, 0; goto c; retfie 1; retlw 0x42; addlw 0x23; mullw 0x32;
+     * lfsr 2, 0xabc; tblrd*; tblrd*+; tblrd*-; tblrd+*; tblwt*; tblwt*+;
+     * tblwt*-; tblwt+*; end */
+    {
+        uint8_t d[] = {0x31, 0x6b, 0x20, 0x6e, 0x35, 0x65, 0x15, 0x04, 0x15, 0x25, 0x15, 0x3e, 0x15, 0x53, 0x23, 0xc1, 0x56, 0xf2, 0x15, 0x97, 0x15, 0xb4, 0x15, 0x73, 0xff, 0xe2, 0x01, 0xe5, 0xf1, 0xd7, 0x04, 0x00, 0x07, 0x00, 0x03, 0x00, 0x00, 0x00, 0x00, 0xed, 0x00, 0xf0, 0x00, 0xec, 0x00, 0xf0, 0x0f, 0xef, 0x00, 0xf0, 0x11, 0x00, 0x42, 0x0c, 0x23, 0x0f, 0x32, 0x0d, 0x2a, 0xee, 0xbc, 0xf0, 0x08, 0x00, 0x09, 0x00, 0x0a, 0x00, 0x0b, 0x00, 0x0c, 0x00, 0x0d, 0x00, 0x0e, 0x00, 0x0f, 0x00,};
+        uint32_t a[sizeof(d)]; for (i = 0; i < sizeof(d); i++) a[i] = i;
+        struct picInstructionDisasm dis[] = {
+                                                {0x00, {0}, lookup(PIC_SUBARCH_PIC18, "clrf"), {0x31, 0x1}},
+                                                {0x02, {0}, lookup(PIC_SUBARCH_PIC18, "movwf"), {0x20, 0x0}},
+                                                {0x04, {0}, lookup(PIC_SUBARCH_PIC18, "cpfsgt"), {0x35, 0x1}},
+                                                {0x06, {0}, lookup(PIC_SUBARCH_PIC18, "decf"), {0x15, 0x0, 0x0}},
+                                                {0x08, {0}, lookup(PIC_SUBARCH_PIC18, "addwf"), {0x15, 0x0, 0x1}},
+                                                {0x0a, {0}, lookup(PIC_SUBARCH_PIC18, "incfsz"), {0x15, 0x1, 0x0}},
+                                                {0x0c, {0}, lookup(PIC_SUBARCH_PIC18, "movf"), {0x15, 0x1, 0x1}},
+                                                {0x0e, {0}, lookup(PIC_SUBARCH_PIC18, "movff"), {0x123, 0x256}},
+                                                {0x12, {0}, lookup(PIC_SUBARCH_PIC18, "bcf"), {0x15, 0x3, 0x1}},
+                                                {0x14, {0}, lookup(PIC_SUBARCH_PIC18, "btfsc"), {0x15, 0x2, 0x0}},
+                                                {0x16, {0}, lookup(PIC_SUBARCH_PIC18, "btg"), {0x15, 0x1, 0x1}},
+                                                {0x18, {0}, lookup(PIC_SUBARCH_PIC18, "bc"), {-0x2}},
+                                                {0x1a, {0}, lookup(PIC_SUBARCH_PIC18, "bnov"), {0x2}},
+                                                {0x1c, {0}, lookup(PIC_SUBARCH_PIC18, "bra"), {-0x1e}},
+                                                {0x1e, {0}, lookup(PIC_SUBARCH_PIC18, "clrwdt"), {0}},
+                                                {0x20, {0}, lookup(PIC_SUBARCH_PIC18, "daw"), {0}},
+                                                {0x22, {0}, lookup(PIC_SUBARCH_PIC18, "sleep"), {0}},
+                                                {0x24, {0}, lookup(PIC_SUBARCH_PIC18, "nop"), {0}},
+                                                {0x26, {0}, lookup(PIC_SUBARCH_PIC18, "call"), {0x0, 0x1}},
+                                                {0x2a, {0}, lookup(PIC_SUBARCH_PIC18, "call"), {0x0, 0x0}},
+                                                {0x2e, {0}, lookup(PIC_SUBARCH_PIC18, "goto"), {0x1e}},
+                                                {0x32, {0}, lookup(PIC_SUBARCH_PIC18, "retfie"), {0x1}},
+                                                {0x34, {0}, lookup(PIC_SUBARCH_PIC18, "retlw"), {0x42}},
+                                                {0x36, {0}, lookup(PIC_SUBARCH_PIC18, "addlw"), {0x23}},
+                                                {0x38, {0}, lookup(PIC_SUBARCH_PIC18, "mullw"), {0x32}},
+                                                {0x3a, {0}, lookup(PIC_SUBARCH_PIC18, "lfsr"), {0x2, 0xabc}},
+                                                {0x3e, {0}, lookup(PIC_SUBARCH_PIC18, "tblrd*"), {0}},
+                                                {0x40, {0}, lookup(PIC_SUBARCH_PIC18, "tblrd*+"), {0}},
+                                                {0x42, {0}, lookup(PIC_SUBARCH_PIC18, "tblrd*-"), {0}},
+                                                {0x44, {0}, lookup(PIC_SUBARCH_PIC18, "tblrd+*"), {0}},
+                                                {0x46, {0}, lookup(PIC_SUBARCH_PIC18, "tblwt*"), {0}},
+                                                {0x48, {0}, lookup(PIC_SUBARCH_PIC18, "tblwt*+"), {0}},
+                                                {0x4a, {0}, lookup(PIC_SUBARCH_PIC18, "tblwt*-"), {0}},
+                                                {0x4c, {0}, lookup(PIC_SUBARCH_PIC18, "tblwt+*"), {0}},
+                                            };
+        if (test_disasm_pic_unit_test_run("Sample Program PIC18", PIC_SUBARCH_PIC18, &d[0], &a[0], sizeof(d), (struct picInstructionDisasm *)dis, sizeof(dis)/sizeof(dis[0])) == 0)
+            passedTests++;
+        numTests++;
     }
 
     /* Check EOF lone byte */
