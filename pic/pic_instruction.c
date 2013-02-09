@@ -119,8 +119,11 @@ int pic_instruction_get_str_operand(struct instruction *instr, char *dest, int s
         case OPERAND_RAW_BYTE:
             return snprintf(dest, size, "%s%02x", PIC_PREFIX_RAW_BYTE, instructionDisasm->operandDisasms[index]);
             break;
-        case OPERAND_ABSOLUTE_ADDRESS:
-        case OPERAND_LONG_ABSOLUTE_ADDRESS:
+        case OPERAND_LONG_MOVFF_DATA_ADDRESS:
+        case OPERAND_ABSOLUTE_DATA_ADDRESS:
+        case OPERAND_LONG_ABSOLUTE_DATA_ADDRESS:
+        case OPERAND_ABSOLUTE_PROG_ADDRESS:
+        case OPERAND_LONG_ABSOLUTE_PROG_ADDRESS:
             /* If we have address labels turned on, replace the relative
              * address with the appropriate address label */
             if (flags & PRINT_FLAG_ASSEMBLY) {
@@ -130,7 +133,7 @@ int pic_instruction_get_str_operand(struct instruction *instr, char *dest, int s
             }
             break;
         case OPERAND_LITERAL:
-        case OPERAND_LONG_LITERAL:
+        case OPERAND_LONG_LFSR_LITERAL:
             if (flags & PRINT_FLAG_DATA_BIN) {
                 /* Data representation binary */
                 char binary[9];
@@ -152,7 +155,7 @@ int pic_instruction_get_str_operand(struct instruction *instr, char *dest, int s
             }
             break;
         /* Mid-range Enhanced Operands */
-        case OPERAND_RELATIVE_ADDRESS:
+        case OPERAND_RELATIVE_PROG_ADDRESS:
             /* If we have address labels turned on, replace the relative
              * address with the appropriate address label */
             if (flags & PRINT_FLAG_ASSEMBLY) {
@@ -227,7 +230,7 @@ int pic_instruction_get_str_comment(struct instruction *instr, char *dest, int s
 
     /* Print destination address comment */
     for (i = 0; i < instructionDisasm->instructionInfo->numOperands; i++) {
-        if (instructionDisasm->instructionInfo->operandTypes[i] == OPERAND_RELATIVE_ADDRESS)
+        if (instructionDisasm->instructionInfo->operandTypes[i] == OPERAND_RELATIVE_PROG_ADDRESS)
             return snprintf(dest, size, "; %s%x", PIC_PREFIX_ABSOLUTE_ADDRESS, instructionDisasm->operandDisasms[i] + instructionDisasm->address + 2);
     }
 

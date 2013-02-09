@@ -31,7 +31,7 @@ struct avrInstructionInfo AVR_Instruction_Set[] = {
     {"icall", 2, 0x9509, 0, {0}, {OPERAND_NONE, OPERAND_NONE}},
     {"ijmp", 2, 0x9409, 0, {0}, {OPERAND_NONE, OPERAND_NONE}},
     {"lpm", 2, 0x95c8, 0, {0}, {OPERAND_NONE, OPERAND_NONE}},
-    {"nop", 2, 0x0000, {0}, {OPERAND_NONE, OPERAND_NONE}},
+    {"nop", 2, 0x0000, 0, {0}, {OPERAND_NONE, OPERAND_NONE}},
     {"ret", 2, 0x9508, 0, {0}, {OPERAND_NONE, OPERAND_NONE}},
     {"reti", 2, 0x9518, 0, {0}, {OPERAND_NONE, OPERAND_NONE}},
     {"sec", 2, 0x9408, 0, {0}, {OPERAND_NONE, OPERAND_NONE}},
