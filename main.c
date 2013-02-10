@@ -108,6 +108,8 @@ void debug(FILE *in) {
     #endif
 
     if (success) printf("All tests passed!\n"); else printf("Some tests failed...\n");
+
+    fclose(in);
 }
 
 static void printUsage(const char *programName) {
