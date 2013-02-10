@@ -1,13 +1,14 @@
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 
 #include <instruction.h>
 #include <printstream_file.h>
 
 #include "avr_instruction_set.h"
 
-/* AVRASM format prefixes */
+/* AVRASM formats */
 #define AVR_FORMAT_OP_REGISTER(fmt)         "R" fmt ""      /* mov R0, R2 */
 #define AVR_FORMAT_OP_IO_REGISTER(fmt)      "$" fmt ""      /* out $39, R16 */
 #define AVR_FORMAT_OP_DATA_HEX(fmt)         "0x" fmt ""     /* ldi R16, 0x3d */
@@ -20,7 +21,6 @@
 #define AVR_FORMAT_OP_DES_ROUND(fmt)        "0x" fmt ""     /* des 0x01 */
 #define AVR_FORMAT_OP_RAW_WORD(fmt)         "0x" fmt ""     /* .dw 0xabcd */
 #define AVR_FORMAT_OP_RAW_BYTE(fmt)         "0x" fmt ""     /* .db 0xab */
-#define AVR_FORMAT_ORIGIN(fmt)              ".org " fmt ""  /* .org 0x500 */
 #define AVR_FORMAT_ADDRESS(fmt)             "" fmt ":"      /* 0004: */
 #define AVR_FORMAT_ADDRESS_LABEL(fmt)       "A_" fmt ":"    /* A_0004: */
 
@@ -31,8 +31,7 @@
 uint32_t avr_instruction_get_address(struct instruction *instr);
 unsigned int avr_instruction_get_width(struct instruction *instr);
 unsigned int avr_instruction_get_num_operands(struct instruction *instr);
-void avr_instruction_get_opcodes(struct instruction *instr, uint8_t *dest);
-int avr_instruction_get_str_origin(struct instruction *instr, char *dest, int size, int flags);
+unsigned int avr_instruction_get_opcodes(struct instruction *instr, uint8_t *dest);
 int avr_instruction_get_str_address_label(struct instruction *instr, char *dest, int size, int flags);
 int avr_instruction_get_str_address(struct instruction *instr, char *dest, int size, int flags);
 int avr_instruction_get_str_opcodes(struct instruction *instr, char *dest, int size, int flags);
@@ -41,46 +40,53 @@ int avr_instruction_get_str_operand(struct instruction *instr, char *dest, int s
 int avr_instruction_get_str_comment(struct instruction *instr, char *dest, int size, int flags);
 void avr_instruction_free(struct instruction *instr);
 
+/* AVR Directive Accessor Functions */
+unsigned int avr_directive_get_num_operands(struct instruction *instr);
+int avr_directive_get_str_mnemonic(struct instruction *instr, char *dest, int size, int flags);
+int avr_directive_get_str_operand(struct instruction *instr, char *dest, int size, int index, int flags);
+void avr_directive_free(struct instruction *instr);
+
+/******************************************************************************/
+/* AVR Instructions */
+/******************************************************************************/
+
 uint32_t avr_instruction_get_address(struct instruction *instr) {
-    struct avrInstructionDisasm *instructionDisasm = (struct avrInstructionDisasm *)instr->instructionDisasm;
+    struct avrInstructionDisasm *instructionDisasm = (struct avrInstructionDisasm *)instr->data;
     return instructionDisasm->address;
 }
 
 unsigned int avr_instruction_get_width(struct instruction *instr) {
-    struct avrInstructionDisasm *instructionDisasm = (struct avrInstructionDisasm *)instr->instructionDisasm;
+    struct avrInstructionDisasm *instructionDisasm = (struct avrInstructionDisasm *)instr->data;
     return instructionDisasm->instructionInfo->width;
 }
 
 unsigned int avr_instruction_get_num_operands(struct instruction *instr) {
-    struct avrInstructionDisasm *instructionDisasm = (struct avrInstructionDisasm *)instr->instructionDisasm;
+    struct avrInstructionDisasm *instructionDisasm = (struct avrInstructionDisasm *)instr->data;
     return instructionDisasm->instructionInfo->numOperands;
 }
 
-void avr_instruction_get_opcodes(struct instruction *instr, uint8_t *dest) {
-    struct avrInstructionDisasm *instructionDisasm = (struct avrInstructionDisasm *)instr->instructionDisasm;
+unsigned int avr_instruction_get_opcodes(struct instruction *instr, uint8_t *dest) {
+    struct avrInstructionDisasm *instructionDisasm = (struct avrInstructionDisasm *)instr->data;
     int i;
 
     for (i = 0; i < instructionDisasm->instructionInfo->width; i++)
         *dest++ = instructionDisasm->opcode[i];
-}
 
-int avr_instruction_get_str_origin(struct instruction *instr, char *dest, int size, int flags) {
-    struct avrInstructionDisasm *instructionDisasm = (struct avrInstructionDisasm *)instr->instructionDisasm;
-    return snprintf(dest, size, AVR_FORMAT_ORIGIN("%0*x"), AVR_ADDRESS_WIDTH, instructionDisasm->address);
+    return instructionDisasm->instructionInfo->width;
 }
 
 int avr_instruction_get_str_address_label(struct instruction *instr, char *dest, int size, int flags) {
-    struct avrInstructionDisasm *instructionDisasm = (struct avrInstructionDisasm *)instr->instructionDisasm;
-    return snprintf(dest, size, AVR_FORMAT_ADDRESS_LABEL("%0*x:"), AVR_ADDRESS_WIDTH, instructionDisasm->address);
+    struct avrInstructionDisasm *instructionDisasm = (struct avrInstructionDisasm *)instr->data;
+    return snprintf(dest, size, AVR_FORMAT_ADDRESS_LABEL("%0*x"), AVR_ADDRESS_WIDTH, instructionDisasm->address);
 }
 
 int avr_instruction_get_str_address(struct instruction *instr, char *dest, int size, int flags) {
-    struct avrInstructionDisasm *instructionDisasm = (struct avrInstructionDisasm *)instr->instructionDisasm;
+    struct avrInstructionDisasm *instructionDisasm = (struct avrInstructionDisasm *)instr->data;
     return snprintf(dest, size, AVR_FORMAT_ADDRESS("%*x"), AVR_ADDRESS_WIDTH, instructionDisasm->address);
 }
 
 int avr_instruction_get_str_opcodes(struct instruction *instr, char *dest, int size, int flags) {
-    struct avrInstructionDisasm *instructionDisasm = (struct avrInstructionDisasm *)instr->instructionDisasm;
+    struct avrInstructionDisasm *instructionDisasm = (struct avrInstructionDisasm *)instr->data;
 
     if (instructionDisasm->instructionInfo->width == 1)
         return snprintf(dest, size, "%02x         ", instructionDisasm->opcode[0]);
@@ -93,12 +99,12 @@ int avr_instruction_get_str_opcodes(struct instruction *instr, char *dest, int s
 }
 
 int avr_instruction_get_str_mnemonic(struct instruction *instr, char *dest, int size, int flags) {
-    struct avrInstructionDisasm *instructionDisasm = (struct avrInstructionDisasm *)instr->instructionDisasm;
+    struct avrInstructionDisasm *instructionDisasm = (struct avrInstructionDisasm *)instr->data;
     return snprintf(dest, size, "%s", instructionDisasm->instructionInfo->mnemonic);
 }
 
 int avr_instruction_get_str_operand(struct instruction *instr, char *dest, int size, int index, int flags) {
-    struct avrInstructionDisasm *instructionDisasm = (struct avrInstructionDisasm *)instr->instructionDisasm;
+    struct avrInstructionDisasm *instructionDisasm = (struct avrInstructionDisasm *)instr->data;
 
     if (index < 0 || index > instructionDisasm->instructionInfo->numOperands - 1)
         return 0;
@@ -187,7 +193,7 @@ int avr_instruction_get_str_operand(struct instruction *instr, char *dest, int s
 }
 
 int avr_instruction_get_str_comment(struct instruction *instr, char *dest, int size, int flags) {
-    struct avrInstructionDisasm *instructionDisasm = (struct avrInstructionDisasm *)instr->instructionDisasm;
+    struct avrInstructionDisasm *instructionDisasm = (struct avrInstructionDisasm *)instr->data;
     int i;
 
     for (i = 0; i < instructionDisasm->instructionInfo->numOperands; i++) {
@@ -201,7 +207,34 @@ int avr_instruction_get_str_comment(struct instruction *instr, char *dest, int s
 }
 
 void avr_instruction_free(struct instruction *instr) {
-    free(instr->instructionDisasm);
-    instr->instructionDisasm = NULL;
+    free(instr->data);
+    instr->data = NULL;
+}
+
+/******************************************************************************/
+/* AVR Directives */
+/******************************************************************************/
+
+unsigned int avr_directive_get_num_operands(struct instruction *instr) {
+    return 1;
+}
+
+int avr_directive_get_str_mnemonic(struct instruction *instr, char *dest, int size, int flags) {
+    struct avrDirective *directive = (struct avrDirective *)instr->data;
+    return snprintf(dest, size, "%s", directive->name);
+}
+
+int avr_directive_get_str_operand(struct instruction *instr, char *dest, int size, int index, int flags) {
+    struct avrDirective *directive = (struct avrDirective *)instr->data;
+
+    if (strcmp(directive->name, AVR_DIRECTIVE_NAME_ORIGIN) == 0 && index == 0)
+        return snprintf(dest, size, AVR_FORMAT_OP_ABSOLUTE_ADDRESS("%0*x"), AVR_ADDRESS_WIDTH, directive->value);
+
+    return 0;
+}
+
+void avr_directive_free(struct instruction *instr) {
+    free(instr->data);
+    instr->data = NULL;
 }
 

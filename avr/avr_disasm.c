@@ -11,14 +11,13 @@
 #include "avr_support.h"
 
 /******************************************************************************/
-/* AVR Instruction Accessor Functions */
+/* AVR Instruction/Directive Accessor Functions */
 /******************************************************************************/
 
 extern uint32_t avr_instruction_get_address(struct instruction *instr);
 extern unsigned int avr_instruction_get_width(struct instruction *instr);
 extern unsigned int avr_instruction_get_num_operands(struct instruction *instr);
-extern void avr_instruction_get_opcodes(struct instruction *instr, uint8_t *dest);
-extern int avr_instruction_get_str_origin(struct instruction *instr, char *dest, int size, int flags);
+extern unsigned int avr_instruction_get_opcodes(struct instruction *instr, uint8_t *dest);
 extern int avr_instruction_get_str_address_label(struct instruction *instr, char *dest, int size, int flags);
 extern int avr_instruction_get_str_address(struct instruction *instr, char *dest, int size, int flags);
 extern int avr_instruction_get_str_opcodes(struct instruction *instr, char *dest, int size, int flags);
@@ -26,6 +25,11 @@ extern int avr_instruction_get_str_mnemonic(struct instruction *instr, char *des
 extern int avr_instruction_get_str_operand(struct instruction *instr, char *dest, int size, int index, int flags);
 extern int avr_instruction_get_str_comment(struct instruction *instr, char *dest, int size, int flags);
 extern void avr_instruction_free(struct instruction *instr);
+
+extern unsigned int avr_directive_get_num_operands(struct instruction *instr);
+extern int avr_directive_get_str_mnemonic(struct instruction *instr, char *dest, int size, int flags);
+extern int avr_directive_get_str_operand(struct instruction *instr, char *dest, int size, int index, int flags);
+extern void avr_directive_free(struct instruction *instr);
 
 /******************************************************************************/
 /* AVR Disassembly Stream Support */
@@ -36,8 +40,11 @@ struct disasmstream_avr_state {
     uint8_t data[4];
     uint32_t address[4];
     unsigned int len;
-    /* EOF encountered flag */
-    int eof;
+
+    /* initialized, eof encountered booleans */
+    int initialized, eof;
+    /* Next expected address */
+    uint32_t next_address;
 };
 
 int disasmstream_avr_init(struct DisasmStream *self) {
@@ -79,7 +86,8 @@ int disasmstream_avr_close(struct DisasmStream *self) {
 /* Core of the AVR Disassembler */
 /******************************************************************************/
 
-static struct avrInstructionDisasm *util_disasm_instruction(struct avrInstructionInfo *instructionInfo, struct disasmstream_avr_state *state);
+static int util_disasm_directive(struct instruction *instr, char *name, uint32_t value);
+static int util_disasm_instruction(struct instruction *instr, struct avrInstructionInfo *instructionInfo, struct disasmstream_avr_state *state);
 static void util_disasm_operands(struct avrInstructionDisasm *instructionDisasm);
 static int32_t util_disasm_operand(struct avrInstructionInfo *instruction, uint32_t operand, int index);
 static void util_opbuffer_shift(struct disasmstream_avr_state *state, int n);
@@ -89,38 +97,38 @@ static int util_bits_data_from_mask(uint16_t data, uint16_t mask);
 
 int disasmstream_avr_read(struct DisasmStream *self, struct instruction *instr) {
     struct disasmstream_avr_state *state = (struct disasmstream_avr_state *)self->state;
-
     int decodeAttempts, lenConsecutive;
 
-    /* Setup the function pointers of the instruction structure */
-    instr->get_address = avr_instruction_get_address;
-    instr->get_width = avr_instruction_get_width;
-    instr->get_num_operands = avr_instruction_get_num_operands;
-    instr->get_opcodes = avr_instruction_get_opcodes;
-    instr->get_str_origin = avr_instruction_get_str_origin;
-    instr->get_str_address_label = avr_instruction_get_str_address_label;
-    instr->get_str_address = avr_instruction_get_str_address;
-    instr->get_str_opcodes = avr_instruction_get_str_opcodes;
-    instr->get_str_mnemonic = avr_instruction_get_str_mnemonic;
-    instr->get_str_operand = avr_instruction_get_str_operand;
-    instr->get_str_comment = avr_instruction_get_str_comment;
-    instr->free = avr_instruction_free;
+    /* Clear the destination instruction structure */
+    memset(instr, 0, sizeof(struct instruction));
 
     for (decodeAttempts = 0; decodeAttempts < 5; decodeAttempts++) {
         /* Count the number of consective bytes in our opcode buffer */
         lenConsecutive = util_opbuffer_len_consecutive(state);
 
-        /* If we decoded all bytes and reached EOF, return EOF too */
+        /* If we decoded all bytes, reached EOF, then return EOF too */
         if (lenConsecutive == 0 && state->len == 0 && state->eof)
             return STREAM_EOF;
 
-        /* Edge case: when input stream changes address with 1 undecoded
-         * byte */
-            /* One lone byte at some address or at EOF */
+        /* If the address jumped since the last instruction or we're
+         * uninitialized, then return an org directive */
+        if (lenConsecutive > 0 && (state->address[0] != state->next_address || !state->initialized)) {
+            /* Emit an origin directive */
+            if (util_disasm_directive(instr, AVR_DIRECTIVE_NAME_ORIGIN, state->address[0]) < 0) {
+                self->error = "Error allocating memory for directive!";
+                return STREAM_ERROR_FAILURE;
+            }
+            /* Update our state's next expected address */
+            state->next_address = state->address[0];
+            state->initialized = 1;
+            return 0;
+        }
+
+        /* Edge case: when input stream changes address or reaches EOF with 1
+         * undecoded byte */
         if (lenConsecutive == 1 && (state->len > 1 || state->eof)) {
             /* Disassembly a raw .DB byte "instruction" */
-            instr->instructionDisasm = util_disasm_instruction(&AVR_Instruction_Set[AVR_ISET_INDEX_BYTE], state);
-            if (instr->instructionDisasm == NULL) {
+            if (util_disasm_instruction(instr, &AVR_Instruction_Set[AVR_ISET_INDEX_BYTE], state) < 0) {
                 self->error = "Error allocating memory for disassembled instruction!";
                 return STREAM_ERROR_FAILURE;
             }
@@ -145,8 +153,7 @@ int disasmstream_avr_read(struct DisasmStream *self, struct instruction *instr) 
             /* If this is a 16-bit wide instruction */
             if (instructionInfo->width == 2) {
                 /* Disassemble and return a 16-bit instruction */
-                instr->instructionDisasm = util_disasm_instruction(instructionInfo, state);
-                if (instr->instructionDisasm == NULL) {
+                if (util_disasm_instruction(instr, instructionInfo, state) < 0) {
                     self->error = "Error allocating memory for disassembled instruction!";
                     return STREAM_ERROR_FAILURE;
                 }
@@ -156,23 +163,19 @@ int disasmstream_avr_read(struct DisasmStream *self, struct instruction *instr) 
             } else {
                 /* We have read the complete 32-bit instruction */
                 if (lenConsecutive == 4) {
-                    /* Disassemble and return a 32-bit instruction */
-                    instr->instructionDisasm = util_disasm_instruction(instructionInfo, state);
-                    if (instr->instructionDisasm == NULL) {
+                    /* Disassemble and return a 16-bit instruction */
+                    if (util_disasm_instruction(instr, instructionInfo, state) < 0) {
                         self->error = "Error allocating memory for disassembled instruction!";
                         return STREAM_ERROR_FAILURE;
                     }
                     return 0;
 
-                /* Edge case: when input stream changes address with 3 or 2
-                 * undecoded long instruction bytes */
-                    /* Three lone bytes at some address or at EOF */
-                    /* Two lone bytes at some address or at EOF */
+                /* Edge case: when input stream changes address or reaches EOF
+                 * with 3 or 2 undecoded long instruction bytes */
                 } else if ((lenConsecutive == 3 && (state->len > 3 || state->eof)) ||
                            (lenConsecutive == 2 && (state->len > 2 || state->eof))) {
                     /* Return a raw .DW word "instruction" */
-                    instr->instructionDisasm = util_disasm_instruction(&AVR_Instruction_Set[AVR_ISET_INDEX_WORD], state);
-                    if (instr->instructionDisasm == NULL) {
+                    if (util_disasm_instruction(instr, &AVR_Instruction_Set[AVR_ISET_INDEX_WORD], state) < 0) {
                         self->error = "Error allocating memory for disassembled instruction!";
                         return STREAM_ERROR_FAILURE;
                     }
@@ -219,28 +222,71 @@ int disasmstream_avr_read(struct DisasmStream *self, struct instruction *instr) 
     return 0;
 }
 
-static struct avrInstructionDisasm *util_disasm_instruction(struct avrInstructionInfo *instructionInfo, struct disasmstream_avr_state *state) {
+static int util_disasm_directive(struct instruction *instr, char *name, uint32_t value) {
+    struct avrDirective *directive;
+
+    /* Allocate directive structure */
+    directive = malloc(sizeof(struct avrDirective));
+    if (directive == NULL)
+        return -1;
+
+    /* Clear the structure */
+    memset(directive, 0, sizeof(struct avrDirective));
+
+    /* Load name and value */
+    directive->name = name;
+    directive->value = value;
+
+    /* Setup the instruction structure */
+    instr->data = directive;
+    instr->type = DISASM_TYPE_DIRECTIVE;
+    instr->get_num_operands = avr_directive_get_num_operands;
+    instr->get_str_mnemonic = avr_directive_get_str_mnemonic;
+    instr->get_str_operand = avr_directive_get_str_operand;
+    instr->free = avr_directive_free;
+
+    return 0;
+}
+
+static int util_disasm_instruction(struct instruction *instr, struct avrInstructionInfo *instructionInfo, struct disasmstream_avr_state *state) {
     struct avrInstructionDisasm *instructionDisasm;
     int i;
 
+    /* Allocate disassembled instruction structure */
     instructionDisasm = malloc(sizeof(struct avrInstructionDisasm));
     if (instructionDisasm == NULL)
-        return NULL;
+        return -1;
 
+    /* Clear the structure */
     memset(instructionDisasm, 0, sizeof(struct avrInstructionDisasm));
-    /* Copy instruction info */
+
+    /* Load instruction info, address, opcodes, and operands */
     instructionDisasm->instructionInfo = instructionInfo;
-    /* Copy address */
     instructionDisasm->address = state->address[0];
-    /* Copy raw opcodes */
     for (i = 0; i < instructionInfo->width; i++)
         instructionDisasm->opcode[i] = state->data[i];
-    /* Disassemble operands */
     util_disasm_operands(instructionDisasm);
-    /* Shift out the processed byte(s) from our opcode buffer */
     util_opbuffer_shift(state, instructionInfo->width);
 
-    return instructionDisasm;
+    /* Setup the instruction structure */
+    instr->data = instructionDisasm;
+    instr->type = DISASM_TYPE_INSTRUCTION;
+    instr->get_address = avr_instruction_get_address;
+    instr->get_width = avr_instruction_get_width;
+    instr->get_num_operands = avr_instruction_get_num_operands;
+    instr->get_opcodes = avr_instruction_get_opcodes;
+    instr->get_str_address_label = avr_instruction_get_str_address_label;
+    instr->get_str_address = avr_instruction_get_str_address;
+    instr->get_str_opcodes = avr_instruction_get_str_opcodes;
+    instr->get_str_mnemonic = avr_instruction_get_str_mnemonic;
+    instr->get_str_operand = avr_instruction_get_str_operand;
+    instr->get_str_comment = avr_instruction_get_str_comment;
+    instr->free = avr_instruction_free;
+
+    /* Update our state's next expected address */
+    state->next_address = instructionDisasm->address + instructionDisasm->instructionInfo->width;
+
+    return 0;
 }
 
 static void util_disasm_operands(struct avrInstructionDisasm *instructionDisasm) {

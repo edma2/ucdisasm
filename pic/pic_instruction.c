@@ -1,6 +1,7 @@
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 
 #include <instruction.h>
 #include <printstream_file.h>
@@ -21,7 +22,6 @@
 #define PIC_FORMAT_OP_INDF_INDEX(fmt)           "FSR" fmt ""      /* moviw 3[FSR1] */
 #define PIC_FORMAT_OP_RAW_WORD(fmt)             "0x" fmt ""       /* dw 0xabcd */
 #define PIC_FORMAT_OP_RAW_BYTE(fmt)             "0x" fmt ""       /* db 0xab */
-#define PIC_FORMAT_ORIGIN(fmt)                  "org " fmt ""     /* org 0x500 */
 #define PIC_FORMAT_ADDRESS(fmt)                 "" fmt ":"        /* 0004: */
 #define PIC_FORMAT_ADDRESS_LABEL(fmt)           "A_" fmt ":"      /* A_0004: */
 
@@ -32,8 +32,7 @@
 uint32_t pic_instruction_get_address(struct instruction *instr);
 unsigned int pic_instruction_get_width(struct instruction *instr);
 unsigned int pic_instruction_get_num_operands(struct instruction *instr);
-void pic_instruction_get_opcodes(struct instruction *instr, uint8_t *dest);
-int pic_instruction_get_str_origin(struct instruction *instr, char *dest, int size, int flags);
+unsigned int pic_instruction_get_opcodes(struct instruction *instr, uint8_t *dest);
 int pic_instruction_get_str_address_label(struct instruction *instr, char *dest, int size, int flags);
 int pic_instruction_get_str_address(struct instruction *instr, char *dest, int size, int flags);
 int pic_instruction_get_str_opcodes(struct instruction *instr, char *dest, int size, int flags);
@@ -42,46 +41,53 @@ int pic_instruction_get_str_operand(struct instruction *instr, char *dest, int s
 int pic_instruction_get_str_comment(struct instruction *instr, char *dest, int size, int flags);
 void pic_instruction_free(struct instruction *instr);
 
+/* PIC Directive Accessor Functions */
+unsigned int pic_directive_get_num_operands(struct instruction *instr);
+int pic_directive_get_str_mnemonic(struct instruction *instr, char *dest, int size, int flags);
+int pic_directive_get_str_operand(struct instruction *instr, char *dest, int size, int index, int flags);
+void pic_directive_free(struct instruction *instr);
+
+/******************************************************************************/
+/* PIC Instructions */
+/******************************************************************************/
+
 uint32_t pic_instruction_get_address(struct instruction *instr) {
-    struct picInstructionDisasm *instructionDisasm = (struct picInstructionDisasm *)instr->instructionDisasm;
+    struct picInstructionDisasm *instructionDisasm = (struct picInstructionDisasm *)instr->data;
     return instructionDisasm->address;
 }
 
 unsigned int pic_instruction_get_width(struct instruction *instr) {
-    struct picInstructionDisasm *instructionDisasm = (struct picInstructionDisasm *)instr->instructionDisasm;
+    struct picInstructionDisasm *instructionDisasm = (struct picInstructionDisasm *)instr->data;
     return instructionDisasm->instructionInfo->width;
 }
 
 unsigned int pic_instruction_get_num_operands(struct instruction *instr) {
-    struct picInstructionDisasm *instructionDisasm = (struct picInstructionDisasm *)instr->instructionDisasm;
+    struct picInstructionDisasm *instructionDisasm = (struct picInstructionDisasm *)instr->data;
     return instructionDisasm->instructionInfo->numOperands;
 }
 
-void pic_instruction_get_opcodes(struct instruction *instr, uint8_t *dest) {
-    struct picInstructionDisasm *instructionDisasm = (struct picInstructionDisasm *)instr->instructionDisasm;
+unsigned int pic_instruction_get_opcodes(struct instruction *instr, uint8_t *dest) {
+    struct picInstructionDisasm *instructionDisasm = (struct picInstructionDisasm *)instr->data;
     int i;
 
     for (i = 0; i < instructionDisasm->instructionInfo->width; i++)
         *dest++ = instructionDisasm->opcode[i];
-}
 
-int pic_instruction_get_str_origin(struct instruction *instr, char *dest, int size, int flags) {
-    struct picInstructionDisasm *instructionDisasm = (struct picInstructionDisasm *)instr->instructionDisasm;
-    return snprintf(dest, size, PIC_FORMAT_ORIGIN("%0*x"), PIC_ADDRESS_WIDTH, instructionDisasm->address);
+    return instructionDisasm->instructionInfo->width;
 }
 
 int pic_instruction_get_str_address_label(struct instruction *instr, char *dest, int size, int flags) {
-    struct picInstructionDisasm *instructionDisasm = (struct picInstructionDisasm *)instr->instructionDisasm;
+    struct picInstructionDisasm *instructionDisasm = (struct picInstructionDisasm *)instr->data;
     return snprintf(dest, size, PIC_FORMAT_ADDRESS_LABEL("%0*x"), PIC_ADDRESS_WIDTH, instructionDisasm->address);
 }
 
 int pic_instruction_get_str_address(struct instruction *instr, char *dest, int size, int flags) {
-    struct picInstructionDisasm *instructionDisasm = (struct picInstructionDisasm *)instr->instructionDisasm;
+    struct picInstructionDisasm *instructionDisasm = (struct picInstructionDisasm *)instr->data;
     return snprintf(dest, size, PIC_FORMAT_ADDRESS("%*x"), PIC_ADDRESS_WIDTH, instructionDisasm->address);
 }
 
 int pic_instruction_get_str_opcodes(struct instruction *instr, char *dest, int size, int flags) {
-    struct picInstructionDisasm *instructionDisasm = (struct picInstructionDisasm *)instr->instructionDisasm;
+    struct picInstructionDisasm *instructionDisasm = (struct picInstructionDisasm *)instr->data;
 
     if (instructionDisasm->instructionInfo->width == 1)
         return snprintf(dest, size, "%02x         ", instructionDisasm->opcode[0]);
@@ -94,12 +100,12 @@ int pic_instruction_get_str_opcodes(struct instruction *instr, char *dest, int s
 }
 
 int pic_instruction_get_str_mnemonic(struct instruction *instr, char *dest, int size, int flags) {
-    struct picInstructionDisasm *instructionDisasm = (struct picInstructionDisasm *)instr->instructionDisasm;
+    struct picInstructionDisasm *instructionDisasm = (struct picInstructionDisasm *)instr->data;
     return snprintf(dest, size, "%s", instructionDisasm->instructionInfo->mnemonic);
 }
 
 int pic_instruction_get_str_operand(struct instruction *instr, char *dest, int size, int index, int flags) {
-    struct picInstructionDisasm *instructionDisasm = (struct picInstructionDisasm *)instr->instructionDisasm;
+    struct picInstructionDisasm *instructionDisasm = (struct picInstructionDisasm *)instr->data;
 
     if (index < 0 || index > instructionDisasm->instructionInfo->numOperands - 1)
         return 0;
@@ -236,7 +242,7 @@ int pic_instruction_get_str_operand(struct instruction *instr, char *dest, int s
 }
 
 int pic_instruction_get_str_comment(struct instruction *instr, char *dest, int size, int flags) {
-    struct picInstructionDisasm *instructionDisasm = (struct picInstructionDisasm *)instr->instructionDisasm;
+    struct picInstructionDisasm *instructionDisasm = (struct picInstructionDisasm *)instr->data;
     int i;
 
     /* Print destination address comment */
@@ -249,7 +255,34 @@ int pic_instruction_get_str_comment(struct instruction *instr, char *dest, int s
 }
 
 void pic_instruction_free(struct instruction *instr) {
-    free(instr->instructionDisasm);
-    instr->instructionDisasm = NULL;
+    free(instr->data);
+    instr->data = NULL;
+}
+
+/******************************************************************************/
+/* PIC Directives */
+/******************************************************************************/
+
+unsigned int pic_directive_get_num_operands(struct instruction *instr) {
+    return 1;
+}
+
+int pic_directive_get_str_mnemonic(struct instruction *instr, char *dest, int size, int flags) {
+    struct picDirective *directive = (struct picDirective *)instr->data;
+    return snprintf(dest, size, "%s", directive->name);
+}
+
+int pic_directive_get_str_operand(struct instruction *instr, char *dest, int size, int index, int flags) {
+    struct picDirective *directive = (struct picDirective *)instr->data;
+
+    if (strcmp(directive->name, PIC_DIRECTIVE_NAME_ORIGIN) == 0 && index == 0)
+        return snprintf(dest, size, PIC_FORMAT_OP_ABSOLUTE_ADDRESS("%0*x"), PIC_ADDRESS_WIDTH, directive->value);
+
+    return 0;
+}
+
+void pic_directive_free(struct instruction *instr) {
+    free(instr->data);
+    instr->data = NULL;
 }
 

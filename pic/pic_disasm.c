@@ -11,14 +11,13 @@
 #include "pic_support.h"
 
 /******************************************************************************/
-/* PIC Instruction Accessor Functions */
+/* PIC Instruction/Directive Accessor Functions */
 /******************************************************************************/
 
 extern uint32_t pic_instruction_get_address(struct instruction *instr);
 extern unsigned int pic_instruction_get_width(struct instruction *instr);
 extern unsigned int pic_instruction_get_num_operands(struct instruction *instr);
-extern void pic_instruction_get_opcodes(struct instruction *instr, uint8_t *dest);
-extern int pic_instruction_get_str_origin(struct instruction *instr, char *dest, int size, int flags);
+extern unsigned int pic_instruction_get_opcodes(struct instruction *instr, uint8_t *dest);
 extern int pic_instruction_get_str_address_label(struct instruction *instr, char *dest, int size, int flags);
 extern int pic_instruction_get_str_address(struct instruction *instr, char *dest, int size, int flags);
 extern int pic_instruction_get_str_opcodes(struct instruction *instr, char *dest, int size, int flags);
@@ -26,6 +25,11 @@ extern int pic_instruction_get_str_mnemonic(struct instruction *instr, char *des
 extern int pic_instruction_get_str_operand(struct instruction *instr, char *dest, int size, int index, int flags);
 extern int pic_instruction_get_str_comment(struct instruction *instr, char *dest, int size, int flags);
 extern void pic_instruction_free(struct instruction *instr);
+
+extern unsigned int pic_directive_get_num_operands(struct instruction *instr);
+extern int pic_directive_get_str_mnemonic(struct instruction *instr, char *dest, int size, int flags);
+extern int pic_directive_get_str_operand(struct instruction *instr, char *dest, int size, int index, int flags);
+extern void pic_directive_free(struct instruction *instr);
 
 /******************************************************************************/
 /* PIC Baseline / Midrange / Midrange Enhanced Disassembly Stream Support */
@@ -38,8 +42,11 @@ struct disasmstream_pic_state {
     uint8_t data[4];
     uint32_t address[4];
     unsigned int len;
-    /* EOF encountered flag */
-    int eof;
+
+    /* Initialized, eof encountered, end directive booleans */
+    int initialized, eof, end_directive;
+    /* Next expected address */
+    uint32_t next_address;
 };
 
 static int disasmstream_pic_init(struct DisasmStream *self, int subarch) {
@@ -88,7 +95,8 @@ int disasmstream_pic_close(struct DisasmStream *self) {
 /* Core of the PIC Disassembler */
 /******************************************************************************/
 
-static struct picInstructionDisasm *util_disasm_instruction(struct picInstructionInfo *instructionInfo, struct disasmstream_pic_state *state);
+static int util_disasm_directive(struct instruction *instr, char *name, uint32_t value);
+static int util_disasm_instruction(struct instruction *instr, struct picInstructionInfo *instructionInfo, struct disasmstream_pic_state *state);
 static void util_disasm_operands(struct picInstructionDisasm *instructionDisasm);
 static int32_t util_disasm_operand(struct picInstructionInfo *instruction, uint32_t operand, int index);
 static void util_opbuffer_shift(struct disasmstream_pic_state *state, int n);
@@ -98,38 +106,50 @@ static int util_bits_data_from_mask(uint16_t data, uint16_t mask);
 
 int disasmstream_pic_read(struct DisasmStream *self, struct instruction *instr) {
     struct disasmstream_pic_state *state = (struct disasmstream_pic_state *)self->state;
-
     int decodeAttempts, lenConsecutive;
 
-    /* Setup the function pointers of the instruction structure */
-    instr->get_address = pic_instruction_get_address;
-    instr->get_width = pic_instruction_get_width;
-    instr->get_num_operands = pic_instruction_get_num_operands;
-    instr->get_opcodes = pic_instruction_get_opcodes;
-    instr->get_str_origin = pic_instruction_get_str_origin;
-    instr->get_str_address_label = pic_instruction_get_str_address_label;
-    instr->get_str_address = pic_instruction_get_str_address;
-    instr->get_str_opcodes = pic_instruction_get_str_opcodes;
-    instr->get_str_mnemonic = pic_instruction_get_str_mnemonic;
-    instr->get_str_operand = pic_instruction_get_str_operand;
-    instr->get_str_comment = pic_instruction_get_str_comment;
-    instr->free = pic_instruction_free;
+    /* Clear the destination instruction structure */
+    memset(instr, 0, sizeof(struct instruction));
 
     for (decodeAttempts = 0; decodeAttempts < 5; decodeAttempts++) {
         /* Count the number of consective bytes in our opcode buffer */
         lenConsecutive = util_opbuffer_len_consecutive(state);
 
-        /* If we decoded all bytes and reached EOF, return EOF too */
-        if (lenConsecutive == 0 && state->len == 0 && state->eof)
+        /* If we decoded all bytes, reached EOF, returned an end directive,
+         * then return EOF too */
+        if (lenConsecutive == 0 && state->len == 0 && state->eof && state->end_directive)
             return STREAM_EOF;
 
-        /* Edge case: when input stream changes address with 1 undecoded
-         * byte */
-            /* One lone byte at some address or at EOF */
+        /* If we decoded all bytes, reached EOF, then return an end directive */
+        if (lenConsecutive == 0 && state->len == 0 && state->eof) {
+            /* Emit an end directive */
+            if (util_disasm_directive(instr, PIC_DIRECTIVE_NAME_END, 0) < 0) {
+                self->error = "Error allocating memory for directive!";
+                return STREAM_ERROR_FAILURE;
+            }
+            state->end_directive = 1;
+            return 0;
+        }
+
+        /* If the address jumped since the last instruction or we're
+         * uninitialized, then return an org directive */
+        if (lenConsecutive > 0 && (state->address[0] != state->next_address || !state->initialized)) {
+            /* Emit an origin directive */
+            if (util_disasm_directive(instr, PIC_DIRECTIVE_NAME_ORIGIN, state->address[0]) < 0) {
+                self->error = "Error allocating memory for directive!";
+                return STREAM_ERROR_FAILURE;
+            }
+            /* Update our state's next expected address */
+            state->next_address = state->address[0];
+            state->initialized = 1;
+            return 0;
+        }
+
+        /* Edge case: when input stream changes address or reaches EOF with 1
+         * undecoded byte */
         if (lenConsecutive == 1 && (state->len > 1 || state->eof)) {
             /* Disassemble a raw .DB byte "instruction" */
-            instr->instructionDisasm = util_disasm_instruction(&PIC_Instruction_Sets[state->subarch][PIC_ISET_INDEX_BYTE(state->subarch)], state);
-            if (instr->instructionDisasm == NULL) {
+            if (util_disasm_instruction(instr, &PIC_Instruction_Sets[state->subarch][PIC_ISET_INDEX_BYTE(state->subarch)], state) < 0) {
                 self->error = "Error allocating memory for disassembled instruction!";
                 return STREAM_ERROR_FAILURE;
             }
@@ -154,8 +174,7 @@ int disasmstream_pic_read(struct DisasmStream *self, struct instruction *instr) 
             /* If this is a 16-bit wide instruction */
             if (instructionInfo->width == 2) {
                 /* Disassemble and return the 16-bit instruction */
-                instr->instructionDisasm = util_disasm_instruction(instructionInfo, state);
-                if (instr->instructionDisasm == NULL) {
+                if (util_disasm_instruction(instr, instructionInfo, state) < 0) {
                     self->error = "Error allocating memory for disassembled instruction!";
                     return STREAM_ERROR_FAILURE;
                 }
@@ -166,22 +185,18 @@ int disasmstream_pic_read(struct DisasmStream *self, struct instruction *instr) 
                 /* We have read the complete 32-bit instruction */
                 if (lenConsecutive == 4) {
                     /* Decode a 32-bit instruction */
-                    instr->instructionDisasm = util_disasm_instruction(instructionInfo, state);
-                    if (instr->instructionDisasm == NULL) {
+                    if (util_disasm_instruction(instr, instructionInfo, state) < 0) {
                         self->error = "Error allocating memory for disassembled instruction!";
                         return STREAM_ERROR_FAILURE;
                     }
                     return 0;
 
-                /* Edge case: when input stream changes address with 3 or 2
-                 * undecoded long instruction bytes */
-                    /* Three lone bytes at some address or at EOF */
-                    /* Two lone bytes at some address or at EOF */
+                /* Edge case: when input stream changes address or reaches EOF
+                 * with 3 or 2 undecoded long instruction bytes */
                 } else if ((lenConsecutive == 3 && (state->len > 3 || state->eof)) ||
                            (lenConsecutive == 2 && (state->len > 2 || state->eof))) {
                     /* Return a raw .DW word "instruction" */
-                    instr->instructionDisasm = util_disasm_instruction(&PIC_Instruction_Sets[state->subarch][PIC_ISET_INDEX_WORD(state->subarch)], state);
-                    if (instr->instructionDisasm == NULL) {
+                    if (util_disasm_instruction(instr, &PIC_Instruction_Sets[state->subarch][PIC_ISET_INDEX_WORD(state->subarch)], state) < 0) {
                         self->error = "Error allocating memory for disassembled instruction!";
                         return STREAM_ERROR_FAILURE;
                     }
@@ -229,28 +244,71 @@ int disasmstream_pic_read(struct DisasmStream *self, struct instruction *instr) 
     return 0;
 }
 
-static struct picInstructionDisasm *util_disasm_instruction(struct picInstructionInfo *instructionInfo, struct disasmstream_pic_state *state) {
+static int util_disasm_directive(struct instruction *instr, char *name, uint32_t value) {
+    struct picDirective *directive;
+
+    /* Allocate directive structure */
+    directive = malloc(sizeof(struct picDirective));
+    if (directive == NULL)
+        return -1;
+
+    /* Clear the structure */
+    memset(directive, 0, sizeof(struct picDirective));
+
+    /* Load name and value */
+    directive->name = name;
+    directive->value = value;
+
+    /* Setup the instruction structure */
+    instr->data = directive;
+    instr->type = DISASM_TYPE_DIRECTIVE;
+    instr->get_num_operands = pic_directive_get_num_operands;
+    instr->get_str_mnemonic = pic_directive_get_str_mnemonic;
+    instr->get_str_operand = pic_directive_get_str_operand;
+    instr->free = pic_directive_free;
+
+    return 0;
+}
+
+static int util_disasm_instruction(struct instruction *instr, struct picInstructionInfo *instructionInfo, struct disasmstream_pic_state *state) {
     struct picInstructionDisasm *instructionDisasm;
     int i;
 
+    /* Allocate disassembled instruction structure */
     instructionDisasm = malloc(sizeof(struct picInstructionDisasm));
     if (instructionDisasm == NULL)
-        return NULL;
+        return -1;
 
+    /* Clear the structure */
     memset(instructionDisasm, 0, sizeof(struct picInstructionDisasm));
-    /* Copy instruction info */
+
+    /* Load instruction info, address, opcodes, and operands */
     instructionDisasm->instructionInfo = instructionInfo;
-    /* Copy address */
     instructionDisasm->address = state->address[0];
-    /* Copy raw opcodes */
     for (i = 0; i < instructionInfo->width; i++)
         instructionDisasm->opcode[i] = state->data[i];
-    /* Disassemble operands */
     util_disasm_operands(instructionDisasm);
-    /* Shift out the processed byte(s) from our opcode buffer */
     util_opbuffer_shift(state, instructionInfo->width);
 
-    return instructionDisasm;
+    /* Setup the instruction structure */
+    instr->data = instructionDisasm;
+    instr->type = DISASM_TYPE_INSTRUCTION;
+    instr->get_address = pic_instruction_get_address;
+    instr->get_width = pic_instruction_get_width;
+    instr->get_num_operands = pic_instruction_get_num_operands;
+    instr->get_opcodes = pic_instruction_get_opcodes;
+    instr->get_str_address_label = pic_instruction_get_str_address_label;
+    instr->get_str_address = pic_instruction_get_str_address;
+    instr->get_str_opcodes = pic_instruction_get_str_opcodes;
+    instr->get_str_mnemonic = pic_instruction_get_str_mnemonic;
+    instr->get_str_operand = pic_instruction_get_str_operand;
+    instr->get_str_comment = pic_instruction_get_str_comment;
+    instr->free = pic_instruction_free;
+
+    /* Update our state's next expected address */
+    state->next_address = instructionDisasm->address + instructionDisasm->instructionInfo->width;
+
+    return 0;
 }
 
 static void util_disasm_operands(struct picInstructionDisasm *instructionDisasm) {

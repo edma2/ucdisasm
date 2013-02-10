@@ -7,6 +7,10 @@
 #define PIC_ISET_INDEX_WORD(arch)     (PIC_TOTAL_INSTRUCTIONS[arch]-2)
 #define PIC_ISET_INDEX_BYTE(arch)     (PIC_TOTAL_INSTRUCTIONS[arch]-1)
 
+/* Directive names */
+#define PIC_DIRECTIVE_NAME_ORIGIN  "org"
+#define PIC_DIRECTIVE_NAME_END     "end"
+
 /* Enumeration for all types of PIC Operands */
 enum {
     OPERAND_NONE,
@@ -58,6 +62,12 @@ struct picInstructionDisasm {
     uint8_t opcode[4];
     struct picInstructionInfo *instructionInfo;
     int32_t operandDisasms[3];
+};
+
+/* Structure for a directive */
+struct picDirective {
+    char *name;
+    uint32_t value;
 };
 
 extern struct picInstructionInfo *PIC_Instruction_Sets[];
