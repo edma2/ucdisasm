@@ -104,6 +104,8 @@ static int test_disasm_avr_unit_test_run(char *name, uint8_t *test_data, uint32_
     for (i = 0; i < expected_len; i++) {
         instructionDisasm = (struct avrInstructionDisasm *)instrs[i].instructionDisasm;
 
+        printf("\n");
+
         /* Compare instruction address */
         if (instructionDisasm->address != expected_instructionDisasms[i].address) {
             printf("\tFAILURE instr %d address:\t0x%04x, \texpected 0x%04x\n", i, instructionDisasm->address, expected_instructionDisasms[i].address);
@@ -170,13 +172,14 @@ static struct avrInstructionInfo *util_iset_lookup_by_mnemonic(char *mnemonic) {
 
 int test_disasm_avr_unit_tests(void) {
     int numTests = 0, passedTests = 0;
+    int i;
     struct avrInstructionInfo *(*lookup)(char *) = util_iset_lookup_by_mnemonic;
 
     /* Check Sample Program */
     /* rjmp .0; ser R16; out $17, R16; out $18, R16; dec R16; rjmp .-6 */
     {
         uint8_t d[] =  {0x00, 0xc0, 0x0f, 0xef, 0x07, 0xbb, 0x08, 0xbb, 0x0a, 0x95, 0xfd, 0xcf};
-        uint32_t a[] = {0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0a, 0x0b};
+        uint32_t a[sizeof(d)]; for (i = 0; i < sizeof(d); i++) a[i] = i;
         struct avrInstructionDisasm dis[] = {
                                                 {0x00, {0}, lookup("rjmp"), {0}},
                                                 {0x02, {0}, lookup("ser"), {16}},
@@ -194,7 +197,7 @@ int test_disasm_avr_unit_tests(void) {
     /* jmp 0x2abab4; call 0x1f00e; sts 0x1234, r2; lds r3, 0x6780 */
     {
         uint8_t d[] =  {0xad, 0x94, 0x5a, 0x5d, 0x0e, 0x94, 0x07, 0xf8, 0x20, 0x92, 0x34, 0x12, 0x30, 0x90, 0x80, 0x67};
-        uint32_t a[] = {0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0a, 0x0b, 0x0c, 0x0d, 0x0e, 0x0f};
+        uint32_t a[sizeof(d)]; for (i = 0; i < sizeof(d); i++) a[i] = i;
         struct avrInstructionDisasm dis[] = {
                                                 {0x00, {0}, lookup("jmp"), {0x2abab4}},
                                                 {0x04, {0}, lookup("call"), {0x1f00e}},
@@ -210,9 +213,9 @@ int test_disasm_avr_unit_tests(void) {
     /* Lone byte due to EOF */
     {
         uint8_t d[] = {0x18};
-        uint32_t a[] = {0x500};
+        uint32_t a[sizeof(d)]; for (i = 0; i < sizeof(d); i++) a[i] = i;
         struct avrInstructionDisasm dis[] = {
-                                                {0x500, {0}, lookup(".db"), {0x18}},
+                                                {0x00, {0}, lookup(".db"), {0x18}},
                                             };
         if (test_disasm_avr_unit_test_run("EOF Lone Byte", &d[0], &a[0], sizeof(d), &dis[0], sizeof(dis)/sizeof(dis[0])) == 0)
             passedTests++;
@@ -223,9 +226,9 @@ int test_disasm_avr_unit_tests(void) {
     /* Lone byte due to address change */
     {
         uint8_t d[] = {0x18, 0x12, 0x33};
-        uint32_t a[] = {0x500, 0x502, 0x503};
+        uint32_t a[] = {0x100, 0x502, 0x503};
         struct avrInstructionDisasm dis[] = {
-                                                {0x500, {0}, lookup(".db"), {0x18}},
+                                                {0x100, {0}, lookup(".db"), {0x18}},
                                                 {0x502, {0}, lookup("cpi"), {0x11, 0x32}},
                                             };
         if (test_disasm_avr_unit_test_run("Boundary Lone Byte", &d[0], &a[0], sizeof(d), &dis[0], sizeof(dis)/sizeof(dis[0])) == 0)
@@ -238,7 +241,8 @@ int test_disasm_avr_unit_tests(void) {
     {
         uint8_t d[] = {0xae, 0x94, 0xab};
         uint32_t a[] = {0x500, 0x501, 0x502};
-        struct avrInstructionDisasm dis[] = {   {0x500, {0}, lookup(".dw"), {0x94ae}},
+        struct avrInstructionDisasm dis[] = {
+                                                {0x500, {0}, lookup(".dw"), {0x94ae}},
                                                 {0x502, {0}, lookup(".db"), {0xab}},
                                             };
         if (test_disasm_avr_unit_test_run("EOF Lone Wide Instruction", &d[0], &a[0], sizeof(d), &dis[0], sizeof(dis)/sizeof(dis[0])) == 0)
@@ -250,8 +254,9 @@ int test_disasm_avr_unit_tests(void) {
     /* Call instruction 500: 0x94ae | 504: 0xab 0xcd cut short by address change */
     {
         uint8_t d[] = {0xae, 0x94, 0xab, 0xcd};
-        uint32_t a[] = {0x500, 0x501, 0x504, 0x505};
-        struct avrInstructionDisasm dis[] = {   {0x500, {0}, lookup(".dw"), {0x94ae}},
+        uint32_t a[] = {0x100, 0x101, 0x504, 0x505};
+        struct avrInstructionDisasm dis[] = {
+                                                {0x100, {0}, lookup(".dw"), {0x94ae}},
                                                 {0x504, {0}, lookup("rjmp"), {-0x4aa}},
                                             };
         if (test_disasm_avr_unit_test_run("Boundary Lone Wide Instruction", &d[0], &a[0], sizeof(d), &dis[0], sizeof(dis)/sizeof(dis[0])) == 0)

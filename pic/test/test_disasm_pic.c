@@ -46,7 +46,6 @@ static int test_disasmstream(int subarch, uint8_t *test_data, uint32_t *test_add
         ds.stream_read = disasmstream_pic_pic18_read;
     }
 
-
     /* Initialize the stream */
     ret = ds.stream_init(&ds);
     printf("\tds.stream_init(): %d\n", ret);
@@ -331,6 +330,22 @@ int test_disasm_pic_unit_tests(void) {
         numTests++;
     }
 
+    /* Check 32-bit instructions */
+    /* a: movff 0x123, 0x256; c: call 0x0, 1; goto c; lfsr 2, 0xabc; end */
+    {
+        uint8_t d[] = {0x23, 0xc1, 0x56, 0xf2, 0x00, 0xed, 0x00, 0xf0, 0x02, 0xef, 0x00, 0xf0, 0x2a, 0xee, 0xbc, 0xf0};
+        uint32_t a[sizeof(d)]; for (i = 0; i < sizeof(d); i++) a[i] = i;
+        struct picInstructionDisasm dis[] = {
+                                                {0x00, {0}, lookup(PIC_SUBARCH_PIC18, "movff"), {0x123, 0x256}},
+                                                {0x04, {0}, lookup(PIC_SUBARCH_PIC18, "call"), {0x0, 0x1}},
+                                                {0x08, {0}, lookup(PIC_SUBARCH_PIC18, "goto"), {0x4}},
+                                                {0x0c, {0}, lookup(PIC_SUBARCH_PIC18, "lfsr"), {0x2, 0xabc}},
+                                            };
+        if (test_disasm_pic_unit_test_run("PIC18 32-bit Instructions", PIC_SUBARCH_PIC18, &d[0], &a[0], sizeof(d), (struct picInstructionDisasm *)dis, sizeof(dis)/sizeof(dis[0])) == 0)
+            passedTests++;
+        numTests++;
+    }
+
     /* Check EOF lone byte */
     /* Lone byte due to EOF */
     {
@@ -354,6 +369,36 @@ int test_disasm_pic_unit_tests(void) {
                                                 {0x502, {0}, lookup(PIC_SUBARCH_MIDRANGE_ENHANCED, "bra"), {-0x1DC}},
                                             };
         if (test_disasm_pic_unit_test_run("Boundary Lone Byte", PIC_SUBARCH_MIDRANGE_ENHANCED, &d[0], &a[0], sizeof(d), &dis[0], sizeof(dis)/sizeof(dis[0])) == 0)
+            passedTests++;
+        numTests++;
+    }
+
+    /* Check EOF lone 32-bit instruction */
+    /* "call 0x500, 1" instruction cut short by EOF */
+    {
+        uint8_t d[] = {0x80, 0xed, 0x02, 0xf0, 0x80, 0xed, 0x02};
+        uint32_t a[] = {0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06};
+        struct picInstructionDisasm dis[] = {
+                                                {0x00, {0}, lookup(PIC_SUBARCH_PIC18, "call"), {0x500, 0x1}},
+                                                {0x04, {0}, lookup(PIC_SUBARCH_PIC18, "dw"), {0xed80}},
+                                                {0x06, {0}, lookup(PIC_SUBARCH_PIC18, "db"), {0x02}},
+                                            };
+        if (test_disasm_pic_unit_test_run("EOF Lone 32-bit Instruction", PIC_SUBARCH_PIC18, &d[0], &a[0], sizeof(d), &dis[0], sizeof(dis)/sizeof(dis[0])) == 0)
+            passedTests++;
+        numTests++;
+    }
+
+    /* Check boundary lone 32-bit instruction */
+    /* "call 0x500, 1" instruction cut short by address change */
+    {
+        uint8_t d[] = {0x80, 0xed, 0x02, 0xf0, 0x80, 0xed, 0x02, 0xf0};
+        uint32_t a[] = {0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x20, 0x21};
+        struct picInstructionDisasm dis[] = {
+                                                {0x00, {0}, lookup(PIC_SUBARCH_PIC18, "call"), {0x500, 0x1}},
+                                                {0x04, {0}, lookup(PIC_SUBARCH_PIC18, "dw"), {0xed80}},
+                                                {0x20, {0}, lookup(PIC_SUBARCH_PIC18, "nop")+1, {0}},
+                                            };
+        if (test_disasm_pic_unit_test_run("Boundary Lone 32-bit Instruction", PIC_SUBARCH_PIC18, &d[0], &a[0], sizeof(d), &dis[0], sizeof(dis)/sizeof(dis[0])) == 0)
             passedTests++;
         numTests++;
     }
