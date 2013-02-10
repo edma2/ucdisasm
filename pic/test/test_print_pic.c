@@ -116,7 +116,7 @@ int test_print_pic_unit_tests(void) {
         {
             int flags = PRINT_FLAG_ADDRESSES | PRINT_FLAG_DESTINATION_COMMENT | PRINT_FLAG_DATA_HEX | PRINT_FLAG_OPCODES;
 
-            if (test_printstream("PIC Midrange Enhanced Typical Options", PIC_SUBARCH_MIDRANGE_ENHANCED, &d[0], &a[0], sizeof(d), flags) == 0)
+            if (test_printstream("PIC Midrange Enhanced Typical Options", PIC_SUBARCH_MIDRANGE_ENHANCED, (uint8_t *)d, (uint32_t *)a, sizeof(d), flags) == 0)
                 passedTests++;
             numTests++;
         }
@@ -125,7 +125,7 @@ int test_print_pic_unit_tests(void) {
         {
             int flags = PRINT_FLAG_ADDRESSES | PRINT_FLAG_DESTINATION_COMMENT | PRINT_FLAG_DATA_BIN | PRINT_FLAG_OPCODES;
 
-            if (test_printstream("PIC Midrange Enhanced Data Type Bin", PIC_SUBARCH_MIDRANGE_ENHANCED, &d[0], &a[0], sizeof(d), flags) == 0)
+            if (test_printstream("PIC Midrange Enhanced Data Type Bin", PIC_SUBARCH_MIDRANGE_ENHANCED, (uint8_t *)d, (uint32_t *)a, sizeof(d), flags) == 0)
                 passedTests++;
             numTests++;
         }
@@ -134,7 +134,7 @@ int test_print_pic_unit_tests(void) {
         {
             int flags = PRINT_FLAG_ADDRESSES | PRINT_FLAG_DESTINATION_COMMENT | PRINT_FLAG_DATA_DEC | PRINT_FLAG_OPCODES;
 
-            if (test_printstream("PIC Midrange Enhanced Data Type Dec", PIC_SUBARCH_MIDRANGE_ENHANCED, &d[0], &a[0], sizeof(d), flags) == 0)
+            if (test_printstream("PIC Midrange Enhanced Data Type Dec", PIC_SUBARCH_MIDRANGE_ENHANCED, (uint8_t *)d, (uint32_t *)a, sizeof(d), flags) == 0)
                 passedTests++;
             numTests++;
         }
@@ -143,7 +143,7 @@ int test_print_pic_unit_tests(void) {
         {
             int flags = PRINT_FLAG_ADDRESSES | PRINT_FLAG_DESTINATION_COMMENT | PRINT_FLAG_DATA_HEX;
 
-            if (test_printstream("PIC Midrange Enhanced No Original Opcode", PIC_SUBARCH_MIDRANGE_ENHANCED, &d[0], &a[0], sizeof(d), flags) == 0)
+            if (test_printstream("PIC Midrange Enhanced No Original Opcode", PIC_SUBARCH_MIDRANGE_ENHANCED, (uint8_t *)d, (uint32_t *)a, sizeof(d), flags) == 0)
                 passedTests++;
             numTests++;
         }
@@ -152,7 +152,7 @@ int test_print_pic_unit_tests(void) {
         {
             int flags = PRINT_FLAG_DATA_HEX;
 
-            if (test_printstream("PIC Midrange Enhanced No Addresses, No Destination Comments", PIC_SUBARCH_MIDRANGE_ENHANCED, &d[0], &a[0], sizeof(d), flags) == 0)
+            if (test_printstream("PIC Midrange Enhanced No Addresses, No Destination Comments", PIC_SUBARCH_MIDRANGE_ENHANCED, (uint8_t *)d, (uint32_t *)a, sizeof(d), flags) == 0)
                 passedTests++;
             numTests++;
         }
@@ -161,7 +161,7 @@ int test_print_pic_unit_tests(void) {
         {
             int flags = PRINT_FLAG_ASSEMBLY | PRINT_FLAG_DESTINATION_COMMENT | PRINT_FLAG_DATA_HEX;
 
-            if (test_printstream("PIC Midrange Enhanced Assembly", PIC_SUBARCH_MIDRANGE_ENHANCED, &d[0], &a[0], sizeof(d), flags) == 0)
+            if (test_printstream("PIC Midrange Enhanced Assembly", PIC_SUBARCH_MIDRANGE_ENHANCED, (uint8_t *)d, (uint32_t *)a, sizeof(d), flags) == 0)
                 passedTests++;
             numTests++;
         }
@@ -187,7 +187,7 @@ int test_print_pic_unit_tests(void) {
         {
             int flags = PRINT_FLAG_ADDRESSES | PRINT_FLAG_DESTINATION_COMMENT | PRINT_FLAG_DATA_HEX | PRINT_FLAG_OPCODES;
 
-            if (test_printstream("PIC PIC18 Typical Options", PIC_SUBARCH_PIC18, &d[0], &a[0], sizeof(d), flags) == 0)
+            if (test_printstream("PIC PIC18 Typical Options", PIC_SUBARCH_PIC18, (uint8_t *)d, (uint32_t *)a, sizeof(d), flags) == 0)
                 passedTests++;
             numTests++;
         }
@@ -196,7 +196,7 @@ int test_print_pic_unit_tests(void) {
         {
             int flags = PRINT_FLAG_ADDRESSES | PRINT_FLAG_DESTINATION_COMMENT | PRINT_FLAG_DATA_BIN | PRINT_FLAG_OPCODES;
 
-            if (test_printstream("PIC PIC18 Data Type Bin", PIC_SUBARCH_PIC18, &d[0], &a[0], sizeof(d), flags) == 0)
+            if (test_printstream("PIC PIC18 Data Type Bin", PIC_SUBARCH_PIC18, (uint8_t *)d, (uint32_t *)a, sizeof(d), flags) == 0)
                 passedTests++;
             numTests++;
         }
@@ -205,7 +205,7 @@ int test_print_pic_unit_tests(void) {
         {
             int flags = PRINT_FLAG_ADDRESSES | PRINT_FLAG_DESTINATION_COMMENT | PRINT_FLAG_DATA_DEC | PRINT_FLAG_OPCODES;
 
-            if (test_printstream("PIC PIC18 Data Type Dec", PIC_SUBARCH_PIC18, &d[0], &a[0], sizeof(d), flags) == 0)
+            if (test_printstream("PIC PIC18 Data Type Dec", PIC_SUBARCH_PIC18, (uint8_t *)d, (uint32_t *)a, sizeof(d), flags) == 0)
                 passedTests++;
             numTests++;
         }
@@ -214,7 +214,7 @@ int test_print_pic_unit_tests(void) {
         {
             int flags = PRINT_FLAG_ADDRESSES | PRINT_FLAG_DESTINATION_COMMENT | PRINT_FLAG_DATA_HEX;
 
-            if (test_printstream("PIC PIC18 No Original Opcode", PIC_SUBARCH_PIC18, &d[0], &a[0], sizeof(d), flags) == 0)
+            if (test_printstream("PIC PIC18 No Original Opcode", PIC_SUBARCH_PIC18, (uint8_t *)d, (uint32_t *)a, sizeof(d), flags) == 0)
                 passedTests++;
             numTests++;
         }
@@ -223,7 +223,7 @@ int test_print_pic_unit_tests(void) {
         {
             int flags = PRINT_FLAG_DATA_HEX;
 
-            if (test_printstream("PIC PIC18 No Addresses, No Destination Comments", PIC_SUBARCH_PIC18, &d[0], &a[0], sizeof(d), flags) == 0)
+            if (test_printstream("PIC PIC18 No Addresses, No Destination Comments", PIC_SUBARCH_PIC18, (uint8_t *)d, (uint32_t *)a, sizeof(d), flags) == 0)
                 passedTests++;
             numTests++;
         }
@@ -232,7 +232,7 @@ int test_print_pic_unit_tests(void) {
         {
             int flags = PRINT_FLAG_ASSEMBLY | PRINT_FLAG_DESTINATION_COMMENT | PRINT_FLAG_DATA_HEX;
 
-            if (test_printstream("PIC PIC18 Assembly", PIC_SUBARCH_PIC18, &d[0], &a[0], sizeof(d), flags) == 0)
+            if (test_printstream("PIC PIC18 Assembly", PIC_SUBARCH_PIC18, (uint8_t *)d, (uint32_t *)a, sizeof(d), flags) == 0)
                 passedTests++;
             numTests++;
         }

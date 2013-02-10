@@ -99,7 +99,7 @@ int test_print_avr_unit_tests(void) {
     {
         int flags = PRINT_FLAG_ADDRESSES | PRINT_FLAG_DESTINATION_COMMENT | PRINT_FLAG_DATA_HEX | PRINT_FLAG_OPCODES;
 
-        if (test_printstream("AVR8 Typical Options", &d[0], &a[0], sizeof(d), flags) == 0)
+        if (test_printstream("AVR8 Typical Options", (uint8_t *)d, (uint32_t *)a, sizeof(d), flags) == 0)
             passedTests++;
         numTests++;
     }
@@ -108,7 +108,7 @@ int test_print_avr_unit_tests(void) {
     {
         int flags = PRINT_FLAG_ADDRESSES | PRINT_FLAG_DESTINATION_COMMENT | PRINT_FLAG_DATA_BIN | PRINT_FLAG_OPCODES;
 
-        if (test_printstream("AVR8 Data Type Bin", &d[0], &a[0], sizeof(d), flags) == 0)
+        if (test_printstream("AVR8 Data Type Bin", (uint8_t *)d, (uint32_t *)a, sizeof(d), flags) == 0)
             passedTests++;
         numTests++;
     }
@@ -117,7 +117,7 @@ int test_print_avr_unit_tests(void) {
     {
         int flags = PRINT_FLAG_ADDRESSES | PRINT_FLAG_DESTINATION_COMMENT | PRINT_FLAG_DATA_DEC | PRINT_FLAG_OPCODES;
 
-        if (test_printstream("AVR8 Data Type Dec", &d[0], &a[0], sizeof(d), flags) == 0)
+        if (test_printstream("AVR8 Data Type Dec", (uint8_t *)d, (uint32_t *)a, sizeof(d), flags) == 0)
             passedTests++;
         numTests++;
     }
@@ -126,7 +126,7 @@ int test_print_avr_unit_tests(void) {
     {
         int flags = PRINT_FLAG_ADDRESSES | PRINT_FLAG_DESTINATION_COMMENT | PRINT_FLAG_DATA_HEX;
 
-        if (test_printstream("AVR8 No Original Opcode", &d[0], &a[0], sizeof(d), flags) == 0)
+        if (test_printstream("AVR8 No Original Opcode", (uint8_t *)d, (uint32_t *)a, sizeof(d), flags) == 0)
             passedTests++;
         numTests++;
     }
@@ -135,7 +135,7 @@ int test_print_avr_unit_tests(void) {
     {
         int flags = PRINT_FLAG_DATA_HEX;
 
-        if (test_printstream("AVR8 No Addresses, No Destination Comments", &d[0], &a[0], sizeof(d), flags) == 0)
+        if (test_printstream("AVR8 No Addresses, No Destination Comments", (uint8_t *)d, (uint32_t *)a, sizeof(d), flags) == 0)
             passedTests++;
         numTests++;
     }
@@ -144,7 +144,7 @@ int test_print_avr_unit_tests(void) {
     {
         int flags = PRINT_FLAG_ASSEMBLY | PRINT_FLAG_DESTINATION_COMMENT | PRINT_FLAG_DATA_HEX;
 
-        if (test_printstream("AVR8 Assembly", &d[0], &a[0], sizeof(d), flags) == 0)
+        if (test_printstream("AVR8 Assembly", (uint8_t *)d, (uint32_t *)a, sizeof(d), flags) == 0)
             passedTests++;
         numTests++;
     }

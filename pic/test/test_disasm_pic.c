@@ -221,7 +221,7 @@ int test_disasm_pic_unit_tests(void) {
                                                 {0x12, {0}, lookup(PIC_SUBARCH_BASELINE, "sleep"), {0}},
                                                 {0x14, {0}, lookup(PIC_SUBARCH_BASELINE, "clrwdt"), {0}},
                                             };
-        if (test_disasm_pic_unit_test_run("PIC Baseline Sample Program", PIC_SUBARCH_BASELINE, &d[0], &a[0], sizeof(d), &dis[0], sizeof(dis)/sizeof(dis[0])) == 0)
+        if (test_disasm_pic_unit_test_run("PIC Baseline Sample Program", PIC_SUBARCH_BASELINE, (uint8_t *)d, (uint32_t *)a, sizeof(d), (struct picInstructionDisasm *)dis, sizeof(dis)/sizeof(dis[0])) == 0)
             passedTests++;
         numTests++;
     }
@@ -245,7 +245,7 @@ int test_disasm_pic_unit_tests(void) {
                                                 {0x12, {0}, lookup(PIC_SUBARCH_MIDRANGE, "sleep"), {0}},
                                                 {0x14, {0}, lookup(PIC_SUBARCH_MIDRANGE, "clrwdt"), {0}},
                                             };
-        if (test_disasm_pic_unit_test_run("PIC Midrange Sample Program", PIC_SUBARCH_MIDRANGE, &d[0], &a[0], sizeof(d), &dis[0], sizeof(dis)/sizeof(dis[0])) == 0)
+        if (test_disasm_pic_unit_test_run("PIC Midrange Sample Program", PIC_SUBARCH_MIDRANGE, (uint8_t *)d, (uint32_t *)a, sizeof(d), (struct picInstructionDisasm *)dis, sizeof(dis)/sizeof(dis[0])) == 0)
             passedTests++;
         numTests++;
     }
@@ -285,7 +285,7 @@ int test_disasm_pic_unit_tests(void) {
                                                 {0x2c, {0}, lookup(PIC_SUBARCH_MIDRANGE_ENHANCED, "moviw"), {0x0, 0x3}},
                                                 {0x2e, {0}, lookup(PIC_SUBARCH_MIDRANGE_ENHANCED, "moviw")+1, {0x1, 0x5}},
                                             };
-        if (test_disasm_pic_unit_test_run("PIC Midrange Enhanced Sample Program", PIC_SUBARCH_MIDRANGE_ENHANCED, &d[0], &a[0], sizeof(d), &dis[0], sizeof(dis)/sizeof(dis[0])) == 0)
+        if (test_disasm_pic_unit_test_run("PIC Midrange Enhanced Sample Program", PIC_SUBARCH_MIDRANGE_ENHANCED, (uint8_t *)d, (uint32_t *)a, sizeof(d), (struct picInstructionDisasm *)dis, sizeof(dis)/sizeof(dis[0])) == 0)
             passedTests++;
         numTests++;
 
@@ -338,7 +338,7 @@ int test_disasm_pic_unit_tests(void) {
                                                 {0x4a, {0}, lookup(PIC_SUBARCH_PIC18, "tblwt*-"), {0}},
                                                 {0x4c, {0}, lookup(PIC_SUBARCH_PIC18, "tblwt+*"), {0}},
                                             };
-        if (test_disasm_pic_unit_test_run("PIC PIC18 Sample Program", PIC_SUBARCH_PIC18, &d[0], &a[0], sizeof(d), (struct picInstructionDisasm *)dis, sizeof(dis)/sizeof(dis[0])) == 0)
+        if (test_disasm_pic_unit_test_run("PIC PIC18 Sample Program", PIC_SUBARCH_PIC18, (uint8_t *)d, (uint32_t *)a, sizeof(d), (struct picInstructionDisasm *)dis, sizeof(dis)/sizeof(dis[0])) == 0)
             passedTests++;
         numTests++;
     }
@@ -354,7 +354,7 @@ int test_disasm_pic_unit_tests(void) {
                                                 {0x08, {0}, lookup(PIC_SUBARCH_PIC18, "goto"), {0x4}},
                                                 {0x0c, {0}, lookup(PIC_SUBARCH_PIC18, "lfsr"), {0x2, 0xabc}},
                                             };
-        if (test_disasm_pic_unit_test_run("PIC PIC18 32-bit Instructions", PIC_SUBARCH_PIC18, &d[0], &a[0], sizeof(d), (struct picInstructionDisasm *)dis, sizeof(dis)/sizeof(dis[0])) == 0)
+        if (test_disasm_pic_unit_test_run("PIC PIC18 32-bit Instructions", PIC_SUBARCH_PIC18, (uint8_t *)d, (uint32_t *)a, sizeof(d), (struct picInstructionDisasm *)dis, sizeof(dis)/sizeof(dis[0])) == 0)
             passedTests++;
         numTests++;
     }
@@ -367,7 +367,7 @@ int test_disasm_pic_unit_tests(void) {
         struct picInstructionDisasm dis[] = {
                                                 {0x500, {0}, lookup(PIC_SUBARCH_MIDRANGE_ENHANCED, "db"), {0x18}},
                                             };
-        if (test_disasm_pic_unit_test_run("PIC Midrange Enhanced EOF Lone Byte", PIC_SUBARCH_MIDRANGE_ENHANCED, &d[0], &a[0], sizeof(d), &dis[0], sizeof(dis)/sizeof(dis[0])) == 0)
+        if (test_disasm_pic_unit_test_run("PIC Midrange Enhanced EOF Lone Byte", PIC_SUBARCH_MIDRANGE_ENHANCED, (uint8_t *)d, (uint32_t *)a, sizeof(d), (struct picInstructionDisasm *)dis, sizeof(dis)/sizeof(dis[0])) == 0)
             passedTests++;
         numTests++;
     }
@@ -381,7 +381,7 @@ int test_disasm_pic_unit_tests(void) {
                                                 {0x500, {0}, lookup(PIC_SUBARCH_MIDRANGE_ENHANCED, "db"), {0x18}},
                                                 {0x502, {0}, lookup(PIC_SUBARCH_MIDRANGE_ENHANCED, "bra"), {-0x1DC}},
                                             };
-        if (test_disasm_pic_unit_test_run("PIC Midrange Enhanced Boundary Lone Byte", PIC_SUBARCH_MIDRANGE_ENHANCED, &d[0], &a[0], sizeof(d), &dis[0], sizeof(dis)/sizeof(dis[0])) == 0)
+        if (test_disasm_pic_unit_test_run("PIC Midrange Enhanced Boundary Lone Byte", PIC_SUBARCH_MIDRANGE_ENHANCED, (uint8_t *)d, (uint32_t *)a, sizeof(d), (struct picInstructionDisasm *)dis, sizeof(dis)/sizeof(dis[0])) == 0)
             passedTests++;
         numTests++;
     }
@@ -396,7 +396,7 @@ int test_disasm_pic_unit_tests(void) {
                                                 {0x04, {0}, lookup(PIC_SUBARCH_PIC18, "dw"), {0xed80}},
                                                 {0x06, {0}, lookup(PIC_SUBARCH_PIC18, "db"), {0x02}},
                                             };
-        if (test_disasm_pic_unit_test_run("PIC PIC18 EOF Lone 32-bit Instruction", PIC_SUBARCH_PIC18, &d[0], &a[0], sizeof(d), &dis[0], sizeof(dis)/sizeof(dis[0])) == 0)
+        if (test_disasm_pic_unit_test_run("PIC PIC18 EOF Lone 32-bit Instruction", PIC_SUBARCH_PIC18, (uint8_t *)d, (uint32_t *)a, sizeof(d), (struct picInstructionDisasm *)dis, sizeof(dis)/sizeof(dis[0])) == 0)
             passedTests++;
         numTests++;
     }
@@ -411,7 +411,7 @@ int test_disasm_pic_unit_tests(void) {
                                                 {0x04, {0}, lookup(PIC_SUBARCH_PIC18, "dw"), {0xed80}},
                                                 {0x20, {0}, lookup(PIC_SUBARCH_PIC18, "nop")+1, {0}},
                                             };
-        if (test_disasm_pic_unit_test_run("PIC PIC18 Boundary Lone 32-bit Instruction", PIC_SUBARCH_PIC18, &d[0], &a[0], sizeof(d), &dis[0], sizeof(dis)/sizeof(dis[0])) == 0)
+        if (test_disasm_pic_unit_test_run("PIC PIC18 Boundary Lone 32-bit Instruction", PIC_SUBARCH_PIC18, (uint8_t *)d, (uint32_t *)a, sizeof(d), (struct picInstructionDisasm *)dis, sizeof(dis)/sizeof(dis[0])) == 0)
             passedTests++;
         numTests++;
     }

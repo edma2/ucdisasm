@@ -200,7 +200,7 @@ int test_disasm_avr_unit_tests(void) {
                                                 {0x08, {0}, lookup("dec"), {16}},
                                                 {0x0a, {0}, lookup("rjmp"), {-6}},
                                             };
-        if (test_disasm_avr_unit_test_run("AVR8 Sample Program", &d[0], &a[0], sizeof(d), &dis[0], sizeof(dis)/sizeof(dis[0])) == 0)
+        if (test_disasm_avr_unit_test_run("AVR8 Sample Program", (uint8_t *)d, (uint32_t *)a, sizeof(d), (struct avrInstructionDisasm *)dis, sizeof(dis)/sizeof(dis[0])) == 0)
             passedTests++;
         numTests++;
     }
@@ -216,7 +216,7 @@ int test_disasm_avr_unit_tests(void) {
                                                 {0x08, {0}, lookup("sts"), {0x2468, 2}},
                                                 {0x0c, {0}, lookup("lds"), {3, 0xcf00}},
                                             };
-        if (test_disasm_avr_unit_test_run("AVR8 32-bit Instructions", &d[0], &a[0], sizeof(d), &dis[0], sizeof(dis)/sizeof(dis[0])) == 0)
+        if (test_disasm_avr_unit_test_run("AVR8 32-bit Instructions", (uint8_t *)d, (uint32_t *)a, sizeof(d), (struct avrInstructionDisasm *)dis, sizeof(dis)/sizeof(dis[0])) == 0)
             passedTests++;
         numTests++;
     }
@@ -229,7 +229,7 @@ int test_disasm_avr_unit_tests(void) {
         struct avrInstructionDisasm dis[] = {
                                                 {0x00, {0}, lookup(".db"), {0x18}},
                                             };
-        if (test_disasm_avr_unit_test_run("AVR8 EOF Lone Byte", &d[0], &a[0], sizeof(d), &dis[0], sizeof(dis)/sizeof(dis[0])) == 0)
+        if (test_disasm_avr_unit_test_run("AVR8 EOF Lone Byte", (uint8_t *)d, (uint32_t *)a, sizeof(d), (struct avrInstructionDisasm *)dis, sizeof(dis)/sizeof(dis[0])) == 0)
             passedTests++;
         numTests++;
     }
@@ -243,7 +243,7 @@ int test_disasm_avr_unit_tests(void) {
                                                 {0x100, {0}, lookup(".db"), {0x18}},
                                                 {0x502, {0}, lookup("cpi"), {0x11, 0x32}},
                                             };
-        if (test_disasm_avr_unit_test_run("AVR8 Boundary Lone Byte", &d[0], &a[0], sizeof(d), &dis[0], sizeof(dis)/sizeof(dis[0])) == 0)
+        if (test_disasm_avr_unit_test_run("AVR8 Boundary Lone Byte", (uint8_t *)d, (uint32_t *)a, sizeof(d), (struct avrInstructionDisasm *)dis, sizeof(dis)/sizeof(dis[0])) == 0)
             passedTests++;
         numTests++;
     }
@@ -257,7 +257,7 @@ int test_disasm_avr_unit_tests(void) {
                                                 {0x500, {0}, lookup(".dw"), {0x94ae}},
                                                 {0x502, {0}, lookup(".db"), {0xab}},
                                             };
-        if (test_disasm_avr_unit_test_run("AVR8 EOF Lone Wide Instruction", &d[0], &a[0], sizeof(d), &dis[0], sizeof(dis)/sizeof(dis[0])) == 0)
+        if (test_disasm_avr_unit_test_run("AVR8 EOF Lone Wide Instruction", (uint8_t *)d, (uint32_t *)a, sizeof(d), (struct avrInstructionDisasm *)dis, sizeof(dis)/sizeof(dis[0])) == 0)
             passedTests++;
         numTests++;
     }
@@ -271,7 +271,7 @@ int test_disasm_avr_unit_tests(void) {
                                                 {0x100, {0}, lookup(".dw"), {0x94ae}},
                                                 {0x504, {0}, lookup("rjmp"), {-0x4aa}},
                                             };
-        if (test_disasm_avr_unit_test_run("AVR8 Boundary Lone Wide Instruction", &d[0], &a[0], sizeof(d), &dis[0], sizeof(dis)/sizeof(dis[0])) == 0)
+        if (test_disasm_avr_unit_test_run("AVR8 Boundary Lone Wide Instruction", (uint8_t *)d, (uint32_t *)a, sizeof(d), (struct avrInstructionDisasm *)dis, sizeof(dis)/sizeof(dis[0])) == 0)
             passedTests++;
         numTests++;
     }
