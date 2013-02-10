@@ -91,8 +91,8 @@ static int test_disasmstream(int subarch, uint8_t *test_data, uint32_t *test_add
 static int test_disasm_pic_unit_test_run(char *name, int subarch, uint8_t *test_data, uint32_t *test_address, unsigned int test_len, struct picInstructionDisasm *expected_instructionDisasms, unsigned int expected_len) {
     struct picInstructionDisasm *instructionDisasm;
     struct instruction instrs[48];
-    unsigned int len;
-    int ret, i, j;
+    unsigned int len, instrLen;
+    int ret, i, ei, j;
     int success;
 
     printf("Running test \"%s\"\n", name);
@@ -105,35 +105,46 @@ static int test_disasm_pic_unit_test_run(char *name, int subarch, uint8_t *test_
     }
     printf("\tSUCCESS ret == 0\n");
 
+    /* Count the number of actual instructions */
+    for (instrLen = 0, i = 0; i < len; i++) {
+        if (instrs[i].type == DISASM_TYPE_INSTRUCTION)
+            instrLen++;
+    }
+
     /* Compare number of disassembled instructions */
-    if (len != expected_len) {
-        printf("\tFAILURE len (%d) != expected_len (%d)\n\n", len, expected_len);
+    if (instrLen != expected_len) {
+        printf("\tFAILURE len (%d) != expected_len (%d)\n\n", instrLen, expected_len);
         return -1;
     }
-    printf("\tSUCCESS len (%d) == expected_len (%d)\n", len, expected_len);
+    printf("\tSUCCESS len (%d) == expected_len (%d)\n", instrLen, expected_len);
+
 
     success = 1;
 
     /* Compare each disassembled instruction */
-    for (i = 0; i < expected_len; i++) {
-        instructionDisasm = (struct picInstructionDisasm *)instrs[i].instructionDisasm;
+    for (i = 0, ei = 0; i < expected_len; i++) {
+        /* Disregard non-instruction types */
+        if (instrs[i].type != DISASM_TYPE_INSTRUCTION)
+            continue;
+
+        instructionDisasm = (struct picInstructionDisasm *)instrs[i].data;
 
         printf("\n");
 
         /* Compare instruction address */
-        if (instructionDisasm->address != expected_instructionDisasms[i].address) {
-            printf("\tFAILURE instr %d address:\t0x%04x, \texpected 0x%04x\n", i, instructionDisasm->address, expected_instructionDisasms[i].address);
+        if (instructionDisasm->address != expected_instructionDisasms[ei].address) {
+            printf("\tFAILURE instr %d address:\t0x%04x, \texpected 0x%04x\n", ei, instructionDisasm->address, expected_instructionDisasms[ei].address);
             success = 0;
         } else {
-            printf("\tSUCCESS instr %d address:\t0x%04x, \texpected 0x%04x\n", i, instructionDisasm->address, expected_instructionDisasms[i].address);
+            printf("\tSUCCESS instr %d address:\t0x%04x, \texpected 0x%04x\n", ei, instructionDisasm->address, expected_instructionDisasms[ei].address);
         }
 
         /* Compare instruction identified */
-        if (instructionDisasm->instructionInfo != expected_instructionDisasms[i].instructionInfo) {
-            printf("\tFAILURE instr %d:  \t\t%s, \t\texpected %s", i, instructionDisasm->instructionInfo->mnemonic, expected_instructionDisasms[i].instructionInfo->mnemonic);
+        if (instructionDisasm->instructionInfo != expected_instructionDisasms[ei].instructionInfo) {
+            printf("\tFAILURE instr %d:  \t\t%s, \t\texpected %s", ei, instructionDisasm->instructionInfo->mnemonic, expected_instructionDisasms[ei].instructionInfo->mnemonic);
             success = 0;
         } else {
-            printf("\tSUCCESS instr %d:  \t\t%s, \t\texpected %s", i, instructionDisasm->instructionInfo->mnemonic, expected_instructionDisasms[i].instructionInfo->mnemonic);
+            printf("\tSUCCESS instr %d:  \t\t%s, \t\texpected %s", ei, instructionDisasm->instructionInfo->mnemonic, expected_instructionDisasms[ei].instructionInfo->mnemonic);
         }
 
         /* Print the opcodes for debugging's sake */
@@ -144,16 +155,18 @@ static int test_disasm_pic_unit_test_run(char *name, int subarch, uint8_t *test_
 
         /* Compare disassembled operands */
         for (j = 0; j < 2; j++) {
-           if (instructionDisasm->operandDisasms[j] != expected_instructionDisasms[i].operandDisasms[j]) {
-                printf("\tFAILURE instr %d operand %d:\t0x%04x, \texpected 0x%04x\n", i, j, instructionDisasm->operandDisasms[j], expected_instructionDisasms[i].operandDisasms[j]);
+           if (instructionDisasm->operandDisasms[j] != expected_instructionDisasms[ei].operandDisasms[j]) {
+                printf("\tFAILURE instr %d operand %d:\t0x%04x, \texpected 0x%04x\n", ei, j, instructionDisasm->operandDisasms[j], expected_instructionDisasms[ei].operandDisasms[j]);
                 success = 0;
             } else {
-                printf("\tSUCCESS instr %d operand %d:\t0x%04x, \texpected 0x%04x\n", i, j, instructionDisasm->operandDisasms[j], expected_instructionDisasms[i].operandDisasms[j]);
+                printf("\tSUCCESS instr %d operand %d:\t0x%04x, \texpected 0x%04x\n", ei, j, instructionDisasm->operandDisasms[j], expected_instructionDisasms[ei].operandDisasms[j]);
             }
         }
 
         /* Free instruction */
         instrs[i].free(&instrs[i]);
+
+        ei++;
     }
 
     if (success) {
@@ -208,7 +221,7 @@ int test_disasm_pic_unit_tests(void) {
                                                 {0x12, {0}, lookup(PIC_SUBARCH_BASELINE, "sleep"), {0}},
                                                 {0x14, {0}, lookup(PIC_SUBARCH_BASELINE, "clrwdt"), {0}},
                                             };
-        if (test_disasm_pic_unit_test_run("Sample Program Baseline", PIC_SUBARCH_BASELINE, &d[0], &a[0], sizeof(d), &dis[0], sizeof(dis)/sizeof(dis[0])) == 0)
+        if (test_disasm_pic_unit_test_run("PIC Baseline Sample Program", PIC_SUBARCH_BASELINE, &d[0], &a[0], sizeof(d), &dis[0], sizeof(dis)/sizeof(dis[0])) == 0)
             passedTests++;
         numTests++;
     }
@@ -232,7 +245,7 @@ int test_disasm_pic_unit_tests(void) {
                                                 {0x12, {0}, lookup(PIC_SUBARCH_MIDRANGE, "sleep"), {0}},
                                                 {0x14, {0}, lookup(PIC_SUBARCH_MIDRANGE, "clrwdt"), {0}},
                                             };
-        if (test_disasm_pic_unit_test_run("Sample Program Midrange", PIC_SUBARCH_MIDRANGE, &d[0], &a[0], sizeof(d), &dis[0], sizeof(dis)/sizeof(dis[0])) == 0)
+        if (test_disasm_pic_unit_test_run("PIC Midrange Sample Program", PIC_SUBARCH_MIDRANGE, &d[0], &a[0], sizeof(d), &dis[0], sizeof(dis)/sizeof(dis[0])) == 0)
             passedTests++;
         numTests++;
     }
@@ -272,7 +285,7 @@ int test_disasm_pic_unit_tests(void) {
                                                 {0x2c, {0}, lookup(PIC_SUBARCH_MIDRANGE_ENHANCED, "moviw"), {0x0, 0x3}},
                                                 {0x2e, {0}, lookup(PIC_SUBARCH_MIDRANGE_ENHANCED, "moviw")+1, {0x1, 0x5}},
                                             };
-        if (test_disasm_pic_unit_test_run("Sample Program Midrange Enhanced", PIC_SUBARCH_MIDRANGE_ENHANCED, &d[0], &a[0], sizeof(d), &dis[0], sizeof(dis)/sizeof(dis[0])) == 0)
+        if (test_disasm_pic_unit_test_run("PIC Midrange Enhanced Sample Program", PIC_SUBARCH_MIDRANGE_ENHANCED, &d[0], &a[0], sizeof(d), &dis[0], sizeof(dis)/sizeof(dis[0])) == 0)
             passedTests++;
         numTests++;
 
@@ -325,7 +338,7 @@ int test_disasm_pic_unit_tests(void) {
                                                 {0x4a, {0}, lookup(PIC_SUBARCH_PIC18, "tblwt*-"), {0}},
                                                 {0x4c, {0}, lookup(PIC_SUBARCH_PIC18, "tblwt+*"), {0}},
                                             };
-        if (test_disasm_pic_unit_test_run("Sample Program PIC18", PIC_SUBARCH_PIC18, &d[0], &a[0], sizeof(d), (struct picInstructionDisasm *)dis, sizeof(dis)/sizeof(dis[0])) == 0)
+        if (test_disasm_pic_unit_test_run("PIC PIC18 Sample Program", PIC_SUBARCH_PIC18, &d[0], &a[0], sizeof(d), (struct picInstructionDisasm *)dis, sizeof(dis)/sizeof(dis[0])) == 0)
             passedTests++;
         numTests++;
     }
@@ -341,7 +354,7 @@ int test_disasm_pic_unit_tests(void) {
                                                 {0x08, {0}, lookup(PIC_SUBARCH_PIC18, "goto"), {0x4}},
                                                 {0x0c, {0}, lookup(PIC_SUBARCH_PIC18, "lfsr"), {0x2, 0xabc}},
                                             };
-        if (test_disasm_pic_unit_test_run("PIC18 32-bit Instructions", PIC_SUBARCH_PIC18, &d[0], &a[0], sizeof(d), (struct picInstructionDisasm *)dis, sizeof(dis)/sizeof(dis[0])) == 0)
+        if (test_disasm_pic_unit_test_run("PIC PIC18 32-bit Instructions", PIC_SUBARCH_PIC18, &d[0], &a[0], sizeof(d), (struct picInstructionDisasm *)dis, sizeof(dis)/sizeof(dis[0])) == 0)
             passedTests++;
         numTests++;
     }
@@ -354,7 +367,7 @@ int test_disasm_pic_unit_tests(void) {
         struct picInstructionDisasm dis[] = {
                                                 {0x500, {0}, lookup(PIC_SUBARCH_MIDRANGE_ENHANCED, "db"), {0x18}},
                                             };
-        if (test_disasm_pic_unit_test_run("EOF Lone Byte", PIC_SUBARCH_MIDRANGE_ENHANCED, &d[0], &a[0], sizeof(d), &dis[0], sizeof(dis)/sizeof(dis[0])) == 0)
+        if (test_disasm_pic_unit_test_run("PIC Midrange Enhanced EOF Lone Byte", PIC_SUBARCH_MIDRANGE_ENHANCED, &d[0], &a[0], sizeof(d), &dis[0], sizeof(dis)/sizeof(dis[0])) == 0)
             passedTests++;
         numTests++;
     }
@@ -368,7 +381,7 @@ int test_disasm_pic_unit_tests(void) {
                                                 {0x500, {0}, lookup(PIC_SUBARCH_MIDRANGE_ENHANCED, "db"), {0x18}},
                                                 {0x502, {0}, lookup(PIC_SUBARCH_MIDRANGE_ENHANCED, "bra"), {-0x1DC}},
                                             };
-        if (test_disasm_pic_unit_test_run("Boundary Lone Byte", PIC_SUBARCH_MIDRANGE_ENHANCED, &d[0], &a[0], sizeof(d), &dis[0], sizeof(dis)/sizeof(dis[0])) == 0)
+        if (test_disasm_pic_unit_test_run("PIC Midrange Enhanced Boundary Lone Byte", PIC_SUBARCH_MIDRANGE_ENHANCED, &d[0], &a[0], sizeof(d), &dis[0], sizeof(dis)/sizeof(dis[0])) == 0)
             passedTests++;
         numTests++;
     }
@@ -383,7 +396,7 @@ int test_disasm_pic_unit_tests(void) {
                                                 {0x04, {0}, lookup(PIC_SUBARCH_PIC18, "dw"), {0xed80}},
                                                 {0x06, {0}, lookup(PIC_SUBARCH_PIC18, "db"), {0x02}},
                                             };
-        if (test_disasm_pic_unit_test_run("EOF Lone 32-bit Instruction", PIC_SUBARCH_PIC18, &d[0], &a[0], sizeof(d), &dis[0], sizeof(dis)/sizeof(dis[0])) == 0)
+        if (test_disasm_pic_unit_test_run("PIC PIC18 EOF Lone 32-bit Instruction", PIC_SUBARCH_PIC18, &d[0], &a[0], sizeof(d), &dis[0], sizeof(dis)/sizeof(dis[0])) == 0)
             passedTests++;
         numTests++;
     }
@@ -398,7 +411,7 @@ int test_disasm_pic_unit_tests(void) {
                                                 {0x04, {0}, lookup(PIC_SUBARCH_PIC18, "dw"), {0xed80}},
                                                 {0x20, {0}, lookup(PIC_SUBARCH_PIC18, "nop")+1, {0}},
                                             };
-        if (test_disasm_pic_unit_test_run("Boundary Lone 32-bit Instruction", PIC_SUBARCH_PIC18, &d[0], &a[0], sizeof(d), &dis[0], sizeof(dis)/sizeof(dis[0])) == 0)
+        if (test_disasm_pic_unit_test_run("PIC PIC18 Boundary Lone 32-bit Instruction", PIC_SUBARCH_PIC18, &d[0], &a[0], sizeof(d), &dis[0], sizeof(dis)/sizeof(dis[0])) == 0)
             passedTests++;
         numTests++;
     }

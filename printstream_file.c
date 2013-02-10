@@ -15,10 +15,6 @@
 struct printstream_file_state {
     /* Print Option Bit Flags */
     unsigned int flags;
-    /* Origin Initiailized */
-    int origin_initialized;
-    /* Next Expected address */
-    uint32_t next_address;
 };
 
 int printstream_file_init(struct PrintStream *self, int flags) {
@@ -81,19 +77,38 @@ int printstream_file_read(struct PrintStream *self, FILE *out) {
     #define print_newline() do { if (fputs("\n", out) < 0) goto fputs_error; } while(0)
     #define print_tab() do { if (fputs("\t", out) < 0) goto fputs_error; } while (0)
 
-    /* If this is the very first instruction, or there is a discontinuity in
-     * the instruction address */
-    if (!(state->origin_initialized) || instr.get_address(&instr) != state->next_address) {
-        /* Print an origin directive if we're outputting assembly */
-        if (state->flags & PRINT_FLAG_ASSEMBLY) {
-            instr.get_str_origin(&instr, str, sizeof(str), state->flags);
-            print_str();
-            print_newline();
+    /* If the disassembly stream emitted a directive instead of an instruction */
+    if (instr.type == DISASM_TYPE_DIRECTIVE) {
+        /* If we're not outputting assembly, skip it */
+        if (!(state->flags & PRINT_FLAG_ASSEMBLY))
+            return 0;
+
+        print_tab();
+
+        /* Print the directive name */
+        instr.get_str_mnemonic(&instr, str, sizeof(str), state->flags);
+        print_str();
+        print_tab();
+
+        /* Print the directive operands */
+        for (i = 0; ; i++) {
+            /* Print this operand index i */
+            if (instr.get_str_operand(&instr, str, sizeof(str), i, state->flags) > 0) {
+                if (i > 0) print_comma();
+                print_str();
+            /* No more operands to print */
+            } else {
+                break;
+            }
         }
-        state->origin_initialized = 1;
+
+        print_newline();
+
+        /* Free the allocated directive */
+        instr.free(&instr);
+
+        return 0;
     }
-    /* Update next expected address */
-    state->next_address = instr.get_address(&instr) + instr.get_width(&instr);
 
     /* Print an address label if we're printing assembly */
     if (state->flags & PRINT_FLAG_ASSEMBLY) {

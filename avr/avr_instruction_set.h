@@ -7,6 +7,9 @@
 #define AVR_ISET_INDEX_WORD     (AVR_TOTAL_INSTRUCTIONS-2)
 #define AVR_ISET_INDEX_BYTE     (AVR_TOTAL_INSTRUCTIONS-1)
 
+/* Directive names */
+#define AVR_DIRECTIVE_NAME_ORIGIN  ".org"
+
 /* Enumeration for all types of AVR Operands */
 enum {
     OPERAND_NONE,
@@ -36,6 +39,12 @@ struct avrInstructionDisasm {
     uint8_t opcode[4];
     struct avrInstructionInfo *instructionInfo;
     int32_t operandDisasms[2];
+};
+
+/* Structure for a directive */
+struct avrDirective {
+    char *name;
+    uint32_t value;
 };
 
 extern struct avrInstructionInfo AVR_Instruction_Set[];

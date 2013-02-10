@@ -77,8 +77,8 @@ static int test_disasmstream(uint8_t *test_data, uint32_t *test_address, unsigne
 static int test_disasm_avr_unit_test_run(char *name, uint8_t *test_data, uint32_t *test_address, unsigned int test_len, struct avrInstructionDisasm *expected_instructionDisasms, unsigned int expected_len) {
     struct avrInstructionDisasm *instructionDisasm;
     struct instruction instrs[16];
-    unsigned int len;
-    int ret, i, j;
+    unsigned int len, instrLen;
+    int ret, i, ei, j;
     int success;
 
     printf("Running test \"%s\"\n", name);
@@ -91,35 +91,45 @@ static int test_disasm_avr_unit_test_run(char *name, uint8_t *test_data, uint32_
     }
     printf("\tSUCCESS ret == 0\n");
 
+    /* Count the number of actual instructions */
+    for (instrLen = 0, i = 0; i < len; i++) {
+        if (instrs[i].type == DISASM_TYPE_INSTRUCTION)
+            instrLen++;
+    }
+
     /* Compare number of disassembled instructions */
-    if (len != expected_len) {
-        printf("\tFAILURE len (%d) != expected_len (%d)\n\n", len, expected_len);
+    if (instrLen != expected_len) {
+        printf("\tFAILURE len (%d) != expected_len (%d)\n\n", instrLen, expected_len);
         return -1;
     }
-    printf("\tSUCCESS len (%d) == expected_len (%d)\n", len, expected_len);
+    printf("\tSUCCESS len (%d) == expected_len (%d)\n", instrLen, expected_len);
 
     success = 1;
 
     /* Compare each disassembled instruction */
-    for (i = 0; i < expected_len; i++) {
-        instructionDisasm = (struct avrInstructionDisasm *)instrs[i].instructionDisasm;
+    for (i = 0, ei = 0; i < len; i++) {
+        /* Disregard non-instruction types */
+        if (instrs[i].type != DISASM_TYPE_INSTRUCTION)
+            continue;
+
+        instructionDisasm = (struct avrInstructionDisasm *)instrs[i].data;
 
         printf("\n");
 
         /* Compare instruction address */
-        if (instructionDisasm->address != expected_instructionDisasms[i].address) {
-            printf("\tFAILURE instr %d address:\t0x%04x, \texpected 0x%04x\n", i, instructionDisasm->address, expected_instructionDisasms[i].address);
+        if (instructionDisasm->address != expected_instructionDisasms[ei].address) {
+            printf("\tFAILURE instr %d address:\t0x%04x, \texpected 0x%04x\n", ei, instructionDisasm->address, expected_instructionDisasms[ei].address);
             success = 0;
         } else {
-            printf("\tSUCCESS instr %d address:\t0x%04x, \texpected 0x%04x\n", i, instructionDisasm->address, expected_instructionDisasms[i].address);
+            printf("\tSUCCESS instr %d address:\t0x%04x, \texpected 0x%04x\n", ei, instructionDisasm->address, expected_instructionDisasms[ei].address);
         }
 
         /* Compare instruction identified */
-        if (instructionDisasm->instructionInfo != expected_instructionDisasms[i].instructionInfo) {
-            printf("\tFAILURE instr %d:  \t\t%s, \t\texpected %s", i, instructionDisasm->instructionInfo->mnemonic, expected_instructionDisasms[i].instructionInfo->mnemonic);
+        if (instructionDisasm->instructionInfo != expected_instructionDisasms[ei].instructionInfo) {
+            printf("\tFAILURE instr %d:  \t\t%s, \t\texpected %s", ei, instructionDisasm->instructionInfo->mnemonic, expected_instructionDisasms[ei].instructionInfo->mnemonic);
             success = 0;
         } else {
-            printf("\tSUCCESS instr %d:  \t\t%s, \t\texpected %s", i, instructionDisasm->instructionInfo->mnemonic, expected_instructionDisasms[i].instructionInfo->mnemonic);
+            printf("\tSUCCESS instr %d:  \t\t%s, \t\texpected %s", ei, instructionDisasm->instructionInfo->mnemonic, expected_instructionDisasms[ei].instructionInfo->mnemonic);
         }
 
         /* Print the opcodes for debugging's sake */
@@ -130,16 +140,18 @@ static int test_disasm_avr_unit_test_run(char *name, uint8_t *test_data, uint32_
 
         /* Compare disassembled operands */
         for (j = 0; j < 2; j++) {
-           if (instructionDisasm->operandDisasms[j] != expected_instructionDisasms[i].operandDisasms[j]) {
-                printf("\tFAILURE instr %d operand %d:\t0x%04x, \texpected 0x%04x\n", i, j, instructionDisasm->operandDisasms[j], expected_instructionDisasms[i].operandDisasms[j]);
+           if (instructionDisasm->operandDisasms[j] != expected_instructionDisasms[ei].operandDisasms[j]) {
+                printf("\tFAILURE instr %d operand %d:\t0x%04x, \texpected 0x%04x\n", ei, j, instructionDisasm->operandDisasms[j], expected_instructionDisasms[ei].operandDisasms[j]);
                 success = 0;
             } else {
-                printf("\tSUCCESS instr %d operand %d:\t0x%04x, \texpected 0x%04x\n", i, j, instructionDisasm->operandDisasms[j], expected_instructionDisasms[i].operandDisasms[j]);
+                printf("\tSUCCESS instr %d operand %d:\t0x%04x, \texpected 0x%04x\n", ei, j, instructionDisasm->operandDisasms[j], expected_instructionDisasms[ei].operandDisasms[j]);
             }
         }
 
         /* Free instruction */
         instrs[i].free(&instrs[i]);
+
+        ei++;
     }
 
     if (success) {
@@ -188,7 +200,7 @@ int test_disasm_avr_unit_tests(void) {
                                                 {0x08, {0}, lookup("dec"), {16}},
                                                 {0x0a, {0}, lookup("rjmp"), {-6}},
                                             };
-        if (test_disasm_avr_unit_test_run("Sample Program", &d[0], &a[0], sizeof(d), &dis[0], sizeof(dis)/sizeof(dis[0])) == 0)
+        if (test_disasm_avr_unit_test_run("AVR8 Sample Program", &d[0], &a[0], sizeof(d), &dis[0], sizeof(dis)/sizeof(dis[0])) == 0)
             passedTests++;
         numTests++;
     }
@@ -204,7 +216,7 @@ int test_disasm_avr_unit_tests(void) {
                                                 {0x08, {0}, lookup("sts"), {0x2468, 2}},
                                                 {0x0c, {0}, lookup("lds"), {3, 0xcf00}},
                                             };
-        if (test_disasm_avr_unit_test_run("32-bit Instructions", &d[0], &a[0], sizeof(d), &dis[0], sizeof(dis)/sizeof(dis[0])) == 0)
+        if (test_disasm_avr_unit_test_run("AVR8 32-bit Instructions", &d[0], &a[0], sizeof(d), &dis[0], sizeof(dis)/sizeof(dis[0])) == 0)
             passedTests++;
         numTests++;
     }
@@ -217,7 +229,7 @@ int test_disasm_avr_unit_tests(void) {
         struct avrInstructionDisasm dis[] = {
                                                 {0x00, {0}, lookup(".db"), {0x18}},
                                             };
-        if (test_disasm_avr_unit_test_run("EOF Lone Byte", &d[0], &a[0], sizeof(d), &dis[0], sizeof(dis)/sizeof(dis[0])) == 0)
+        if (test_disasm_avr_unit_test_run("AVR8 EOF Lone Byte", &d[0], &a[0], sizeof(d), &dis[0], sizeof(dis)/sizeof(dis[0])) == 0)
             passedTests++;
         numTests++;
     }
@@ -231,7 +243,7 @@ int test_disasm_avr_unit_tests(void) {
                                                 {0x100, {0}, lookup(".db"), {0x18}},
                                                 {0x502, {0}, lookup("cpi"), {0x11, 0x32}},
                                             };
-        if (test_disasm_avr_unit_test_run("Boundary Lone Byte", &d[0], &a[0], sizeof(d), &dis[0], sizeof(dis)/sizeof(dis[0])) == 0)
+        if (test_disasm_avr_unit_test_run("AVR8 Boundary Lone Byte", &d[0], &a[0], sizeof(d), &dis[0], sizeof(dis)/sizeof(dis[0])) == 0)
             passedTests++;
         numTests++;
     }
@@ -245,7 +257,7 @@ int test_disasm_avr_unit_tests(void) {
                                                 {0x500, {0}, lookup(".dw"), {0x94ae}},
                                                 {0x502, {0}, lookup(".db"), {0xab}},
                                             };
-        if (test_disasm_avr_unit_test_run("EOF Lone Wide Instruction", &d[0], &a[0], sizeof(d), &dis[0], sizeof(dis)/sizeof(dis[0])) == 0)
+        if (test_disasm_avr_unit_test_run("AVR8 EOF Lone Wide Instruction", &d[0], &a[0], sizeof(d), &dis[0], sizeof(dis)/sizeof(dis[0])) == 0)
             passedTests++;
         numTests++;
     }
@@ -259,7 +271,7 @@ int test_disasm_avr_unit_tests(void) {
                                                 {0x100, {0}, lookup(".dw"), {0x94ae}},
                                                 {0x504, {0}, lookup("rjmp"), {-0x4aa}},
                                             };
-        if (test_disasm_avr_unit_test_run("Boundary Lone Wide Instruction", &d[0], &a[0], sizeof(d), &dis[0], sizeof(dis)/sizeof(dis[0])) == 0)
+        if (test_disasm_avr_unit_test_run("AVR8 Boundary Lone Wide Instruction", &d[0], &a[0], sizeof(d), &dis[0], sizeof(dis)/sizeof(dis[0])) == 0)
             passedTests++;
         numTests++;
     }
