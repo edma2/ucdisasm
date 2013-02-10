@@ -8,22 +8,26 @@
 #include "avr_instruction_set.h"
 
 /* AVRASM format prefixes */
-#define AVR_PREFIX_REGISTER             "R"  /* mov R0, R2 */
-#define AVR_PREFIX_IO_REGISTER          "$"  /* out $39, R16 */
-#define AVR_PREFIX_DATA_HEX             "0x" /* ldi R16, 0x3d */
-#define AVR_PREFIX_DATA_BIN             "0b" /* ldi R16, 0b00111101 */
-#define AVR_PREFIX_DATA_DEC             ""   /* ldi R16, 61 */
-#define AVR_PREFIX_BIT                  ""   /* cbi $12, 7 */
-#define AVR_PREFIX_ABSOLUTE_ADDRESS     "0x" /* call 0x1234 */
-#define AVR_PREFIX_RELATIVE_ADDRESS     "."  /* rjmp .4 */
-#define AVR_PREFIX_DES_ROUND            "0x" /* des 0x01 */
-#define AVR_PREFIX_RAW_WORD             "0x" /* .dw 0xabcd */
-#define AVR_PREFIX_RAW_BYTE             "0x" /* .db 0xab */
-#define AVR_PREFIX_ADDRESS_LABEL        "A_" /* A_0004: */
+#define AVR_FORMAT_OP_REGISTER(fmt)         "R" fmt ""      /* mov R0, R2 */
+#define AVR_FORMAT_OP_IO_REGISTER(fmt)      "$" fmt ""      /* out $39, R16 */
+#define AVR_FORMAT_OP_DATA_HEX(fmt)         "0x" fmt ""     /* ldi R16, 0x3d */
+#define AVR_FORMAT_OP_DATA_BIN(fmt)         "0b" fmt ""     /* ldi R16, 0b00111101 */
+#define AVR_FORMAT_OP_DATA_DEC(fmt)         "" fmt ""       /* ldi R16, 61 */
+#define AVR_FORMAT_OP_BIT(fmt)              "" fmt ""       /* cbi $12, 7 */
+#define AVR_FORMAT_OP_ABSOLUTE_ADDRESS(fmt) "0x" fmt ""     /* call 0x1234 */
+#define AVR_FORMAT_OP_RELATIVE_ADDRESS(fmt) "." fmt ""      /* rjmp .4 */
+#define AVR_FORMAT_OP_ADDRESS_LABEL(fmt)    "A_" fmt ""     /* call A_0004 */
+#define AVR_FORMAT_OP_DES_ROUND(fmt)        "0x" fmt ""     /* des 0x01 */
+#define AVR_FORMAT_OP_RAW_WORD(fmt)         "0x" fmt ""     /* .dw 0xabcd */
+#define AVR_FORMAT_OP_RAW_BYTE(fmt)         "0x" fmt ""     /* .db 0xab */
+#define AVR_FORMAT_ORIGIN(fmt)              ".org " fmt ""  /* .org 0x500 */
+#define AVR_FORMAT_ADDRESS(fmt)             "" fmt ":"      /* 0004: */
+#define AVR_FORMAT_ADDRESS_LABEL(fmt)       "A_" fmt ":"    /* A_0004: */
 
 /* Address filed width, e.g. 4 -> 0x0004 */
 #define AVR_ADDRESS_WIDTH               4
 
+/* AVR Instruction Accessor Functions */
 uint32_t avr_instruction_get_address(struct instruction *instr);
 unsigned int avr_instruction_get_width(struct instruction *instr);
 unsigned int avr_instruction_get_num_operands(struct instruction *instr);
@@ -36,7 +40,6 @@ int avr_instruction_get_str_mnemonic(struct instruction *instr, char *dest, int 
 int avr_instruction_get_str_operand(struct instruction *instr, char *dest, int size, int index, int flags);
 int avr_instruction_get_str_comment(struct instruction *instr, char *dest, int size, int flags);
 void avr_instruction_free(struct instruction *instr);
-
 
 uint32_t avr_instruction_get_address(struct instruction *instr) {
     struct avrInstructionDisasm *instructionDisasm = (struct avrInstructionDisasm *)instr->instructionDisasm;
@@ -63,17 +66,17 @@ void avr_instruction_get_opcodes(struct instruction *instr, uint8_t *dest) {
 
 int avr_instruction_get_str_origin(struct instruction *instr, char *dest, int size, int flags) {
     struct avrInstructionDisasm *instructionDisasm = (struct avrInstructionDisasm *)instr->instructionDisasm;
-    return snprintf(dest, size, ".org %s%0*x", AVR_PREFIX_ABSOLUTE_ADDRESS, AVR_ADDRESS_WIDTH, instructionDisasm->address);
+    return snprintf(dest, size, AVR_FORMAT_ORIGIN("%0*x"), AVR_ADDRESS_WIDTH, instructionDisasm->address);
 }
 
 int avr_instruction_get_str_address_label(struct instruction *instr, char *dest, int size, int flags) {
     struct avrInstructionDisasm *instructionDisasm = (struct avrInstructionDisasm *)instr->instructionDisasm;
-    return snprintf(dest, size, "%s%0*x:", AVR_PREFIX_ADDRESS_LABEL, AVR_ADDRESS_WIDTH, instructionDisasm->address);
+    return snprintf(dest, size, AVR_FORMAT_ADDRESS_LABEL("%0*x:"), AVR_ADDRESS_WIDTH, instructionDisasm->address);
 }
 
 int avr_instruction_get_str_address(struct instruction *instr, char *dest, int size, int flags) {
     struct avrInstructionDisasm *instructionDisasm = (struct avrInstructionDisasm *)instr->instructionDisasm;
-    return snprintf(dest, size, "%*x:", AVR_ADDRESS_WIDTH, instructionDisasm->address);
+    return snprintf(dest, size, AVR_FORMAT_ADDRESS("%*x"), AVR_ADDRESS_WIDTH, instructionDisasm->address);
 }
 
 int avr_instruction_get_str_opcodes(struct instruction *instr, char *dest, int size, int flags) {
@@ -105,17 +108,17 @@ int avr_instruction_get_str_operand(struct instruction *instr, char *dest, int s
         case OPERAND_REGISTER_STARTR16:
         case OPERAND_REGISTER_EVEN_PAIR:
         case OPERAND_REGISTER_EVEN_PAIR_STARTR24:
-            return snprintf(dest, size, "%s%d", AVR_PREFIX_REGISTER, instructionDisasm->operandDisasms[index]);
+            return snprintf(dest, size, AVR_FORMAT_OP_REGISTER("%d"), instructionDisasm->operandDisasms[index]);
         case OPERAND_IO_REGISTER:
-            return snprintf(dest, size, "%s%02x", AVR_PREFIX_IO_REGISTER, instructionDisasm->operandDisasms[index]);
+            return snprintf(dest, size, AVR_FORMAT_OP_IO_REGISTER("%02x"), instructionDisasm->operandDisasms[index]);
         case OPERAND_BIT:
-            return snprintf(dest, size, "%s%d", AVR_PREFIX_BIT, instructionDisasm->operandDisasms[index]);
+            return snprintf(dest, size, AVR_FORMAT_OP_BIT("%d"), instructionDisasm->operandDisasms[index]);
         case OPERAND_DES_ROUND:
-            return snprintf(dest, size, "%s%d", AVR_PREFIX_DES_ROUND, instructionDisasm->operandDisasms[index]);
+            return snprintf(dest, size, AVR_FORMAT_OP_DES_ROUND("%d"), instructionDisasm->operandDisasms[index]);
         case OPERAND_RAW_WORD:
-            return snprintf(dest, size, "%s%04x", AVR_PREFIX_RAW_WORD, instructionDisasm->operandDisasms[index]);
+            return snprintf(dest, size, AVR_FORMAT_OP_RAW_WORD("%04x"), instructionDisasm->operandDisasms[index]);
         case OPERAND_RAW_BYTE:
-            return snprintf(dest, size, "%s%02x", AVR_PREFIX_RAW_BYTE, instructionDisasm->operandDisasms[index]);
+            return snprintf(dest, size, AVR_FORMAT_OP_RAW_BYTE("%02x"), instructionDisasm->operandDisasms[index]);
         case OPERAND_X:
             return snprintf(dest, size, "X");
         case OPERAND_XP:
@@ -150,30 +153,30 @@ int avr_instruction_get_str_operand(struct instruction *instr, char *dest, int s
                         binary[7-i] = '0';
                 }
                 binary[8] = '\0';
-                return snprintf(dest, size, "%s%s", AVR_PREFIX_DATA_BIN, binary);
+                return snprintf(dest, size, AVR_FORMAT_OP_DATA_BIN("%s"), binary);
             } else if (flags & PRINT_FLAG_DATA_DEC) {
                 /* Data representation decimal */
-                return snprintf(dest, size, "%s%d", AVR_PREFIX_DATA_DEC, instructionDisasm->operandDisasms[index]);
+                return snprintf(dest, size, AVR_FORMAT_OP_DATA_DEC("%d"), instructionDisasm->operandDisasms[index]);
             } else {
                 /* Default to data representation hex */
-                return snprintf(dest, size, "%s%02x", AVR_PREFIX_DATA_HEX, instructionDisasm->operandDisasms[index]);
+                return snprintf(dest, size, AVR_FORMAT_OP_DATA_HEX("%02x"), instructionDisasm->operandDisasms[index]);
             }
         case OPERAND_LONG_ABSOLUTE_ADDRESS:
             /* Divide the address by two to render a word address */
-            return snprintf(dest, size, "%s%0*x", AVR_PREFIX_ABSOLUTE_ADDRESS, AVR_ADDRESS_WIDTH, instructionDisasm->operandDisasms[index] / 2);
+            return snprintf(dest, size, AVR_FORMAT_OP_ABSOLUTE_ADDRESS("%0*x"), AVR_ADDRESS_WIDTH, instructionDisasm->operandDisasms[index] / 2);
         case OPERAND_BRANCH_ADDRESS:
         case OPERAND_RELATIVE_ADDRESS:
             /* If we have address labels turned on, replace the relative
              * address with the appropriate address label */
             if (flags & PRINT_FLAG_ASSEMBLY) {
-                return snprintf(dest, size, "%s%0*x", AVR_PREFIX_ADDRESS_LABEL, AVR_ADDRESS_WIDTH, instructionDisasm->operandDisasms[index] + instructionDisasm->address + 2);
+                return snprintf(dest, size, AVR_FORMAT_OP_ADDRESS_LABEL("%0*x"), AVR_ADDRESS_WIDTH, instructionDisasm->operandDisasms[index] + instructionDisasm->address + 2);
             } else {
                 /* Print a plus sign for positive relative addresses, printf
                  * will insert a minus sign for negative relative addresses. */
                 if (instructionDisasm->operandDisasms[index] >= 0) {
-                    return snprintf(dest, size, "%s+%d", AVR_PREFIX_RELATIVE_ADDRESS, instructionDisasm->operandDisasms[index]);
+                    return snprintf(dest, size, AVR_FORMAT_OP_RELATIVE_ADDRESS("+%d"), instructionDisasm->operandDisasms[index]);
                 } else {
-                    return snprintf(dest, size, "%s%d", AVR_PREFIX_RELATIVE_ADDRESS, instructionDisasm->operandDisasms[index]);
+                    return snprintf(dest, size, AVR_FORMAT_OP_RELATIVE_ADDRESS("%d"), instructionDisasm->operandDisasms[index]);
                 }
             }
         default:
@@ -190,7 +193,7 @@ int avr_instruction_get_str_comment(struct instruction *instr, char *dest, int s
     for (i = 0; i < instructionDisasm->instructionInfo->numOperands; i++) {
         if ( instructionDisasm->instructionInfo->operandTypes[i] == OPERAND_BRANCH_ADDRESS ||
              instructionDisasm->instructionInfo->operandTypes[i] == OPERAND_RELATIVE_ADDRESS) {
-            return snprintf(dest, size, "; %s%x", AVR_PREFIX_ABSOLUTE_ADDRESS, instructionDisasm->operandDisasms[i] + instructionDisasm->address + 2);
+            return snprintf(dest, size, "; " AVR_FORMAT_OP_ABSOLUTE_ADDRESS("%x"), instructionDisasm->operandDisasms[i] + instructionDisasm->address + 2);
         }
     }
 
