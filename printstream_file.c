@@ -80,8 +80,10 @@ int printstream_file_read(struct PrintStream *self, FILE *out) {
     /* If the disassembly stream emitted a directive instead of an instruction */
     if (instr.type == DISASM_TYPE_DIRECTIVE) {
         /* If we're not outputting assembly, skip it */
-        if (!(state->flags & PRINT_FLAG_ASSEMBLY))
+        if (!(state->flags & PRINT_FLAG_ASSEMBLY)) {
+            instr.free(&instr);
             return 0;
+        }
 
         print_tab();
 

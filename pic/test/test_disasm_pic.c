@@ -98,7 +98,7 @@ static int test_disasm_pic_unit_test_run(char *name, int subarch, uint8_t *test_
     printf("Running test \"%s\"\n", name);
 
     /* Run the Disasm Stream on the test vectors */
-    ret = test_disasmstream(subarch, test_data, test_address, test_len, &instrs[0], &len);
+    ret = test_disasmstream(subarch, test_data, test_address, test_len, (struct instruction *)&instrs, &len);
     if (ret != 0) {
         printf("\tFAILURE ret != 0\n\n");
         return -1;
@@ -122,10 +122,12 @@ static int test_disasm_pic_unit_test_run(char *name, int subarch, uint8_t *test_
     success = 1;
 
     /* Compare each disassembled instruction */
-    for (i = 0, ei = 0; i < expected_len; i++) {
+    for (i = 0, ei = 0; i < len; i++) {
         /* Disregard non-instruction types */
-        if (instrs[i].type != DISASM_TYPE_INSTRUCTION)
+        if (instrs[i].type != DISASM_TYPE_INSTRUCTION) {
+            instrs[i].free(&instrs[i]);
             continue;
+        }
 
         instructionDisasm = (struct picInstructionDisasm *)instrs[i].data;
 
