@@ -142,8 +142,8 @@ int pic_instruction_get_str_operand(struct instruction *instr, char *dest, int s
         case OPERAND_LONG_ABSOLUTE_DATA_ADDRESS:
         case OPERAND_ABSOLUTE_PROG_ADDRESS:
         case OPERAND_LONG_ABSOLUTE_PROG_ADDRESS:
-            /* If we have address labels turned on, replace the relative
-             * address with the appropriate address label */
+            /* If we have address labels turned on, replace the address with
+             * the appropriate address label */
             if (flags & PRINT_FLAG_ASSEMBLY) {
                 return snprintf(dest, size, PIC_FORMAT_OP_ADDRESS_LABEL("%0*x"), PIC_ADDRESS_WIDTH, instructionDisasm->operandDisasms[index]);
             } else {

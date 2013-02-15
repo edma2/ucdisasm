@@ -168,8 +168,15 @@ int avr_instruction_get_str_operand(struct instruction *instr, char *dest, int s
                 return snprintf(dest, size, AVR_FORMAT_OP_DATA_HEX("%02x"), instructionDisasm->operandDisasms[index]);
             }
         case OPERAND_LONG_ABSOLUTE_ADDRESS:
-            /* Divide the address by two to render a word address */
-            return snprintf(dest, size, AVR_FORMAT_OP_ABSOLUTE_ADDRESS("%0*x"), AVR_ADDRESS_WIDTH, instructionDisasm->operandDisasms[index] / 2);
+            /* If we have address labels turned on, replace the address with
+             * the appropriate address label */
+            if (flags & PRINT_FLAG_ASSEMBLY) {
+                return snprintf(dest, size, AVR_FORMAT_OP_ADDRESS_LABEL("%0*x"), AVR_ADDRESS_WIDTH, instructionDisasm->operandDisasms[index]);
+            } else {
+                /* Divide the address by two to render a word address */
+                return snprintf(dest, size, AVR_FORMAT_OP_ABSOLUTE_ADDRESS("%0*x"), AVR_ADDRESS_WIDTH, instructionDisasm->operandDisasms[index] / 2);
+            }
+            break;
         case OPERAND_BRANCH_ADDRESS:
         case OPERAND_RELATIVE_ADDRESS:
             /* If we have address labels turned on, replace the relative
