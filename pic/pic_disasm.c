@@ -98,7 +98,7 @@ int disasmstream_pic_close(struct DisasmStream *self) {
 static int util_disasm_directive(struct instruction *instr, char *name, uint32_t value);
 static int util_disasm_instruction(struct instruction *instr, struct picInstructionInfo *instructionInfo, struct disasmstream_pic_state *state);
 static void util_disasm_operands(struct picInstructionDisasm *instructionDisasm);
-static int32_t util_disasm_operand(struct picInstructionInfo *instruction, uint32_t operand, int index);
+static int32_t util_disasm_operand(struct picInstructionInfo *instructionInfo, uint32_t operand, int index);
 static void util_opbuffer_shift(struct disasmstream_pic_state *state, int n);
 static int util_opbuffer_len_consecutive(struct disasmstream_pic_state *state);
 static struct picInstructionInfo *util_iset_lookup_by_opcode(int subarch, uint16_t opcode);
@@ -111,7 +111,7 @@ int disasmstream_pic_read(struct DisasmStream *self, struct instruction *instr) 
     /* Clear the destination instruction structure */
     memset(instr, 0, sizeof(struct instruction));
 
-    for (decodeAttempts = 0; decodeAttempts < 5; decodeAttempts++) {
+    for (decodeAttempts = 0; decodeAttempts < sizeof(state->data)+1; decodeAttempts++) {
         /* Count the number of consective bytes in our opcode buffer */
         lenConsecutive = util_opbuffer_len_consecutive(state);
 
@@ -338,11 +338,11 @@ static void util_disasm_operands(struct picInstructionDisasm *instructionDisasm)
     }
 }
 
-static int32_t util_disasm_operand(struct picInstructionInfo *instruction, uint32_t operand, int index) {
+static int32_t util_disasm_operand(struct picInstructionInfo *instructionInfo, uint32_t operand, int index) {
     int32_t operandDisasm;
     uint32_t msb;
 
-    switch (instruction->operandTypes[index]) {
+    switch (instructionInfo->operandTypes[index]) {
         case OPERAND_ABSOLUTE_DATA_ADDRESS:
         case OPERAND_LONG_ABSOLUTE_DATA_ADDRESS:
             /* This is already a data address */
@@ -361,19 +361,19 @@ static int32_t util_disasm_operand(struct picInstructionInfo *instruction, uint3
              * relative jumps / signed literals, the bits occupy the lowest
              * positions continuously (no breaks in the bit string). */
             /* Calculate the most significant bit of this signed data */
-            msb = (instruction->operandMasks[index] + 1) >> 1;
+            msb = (instructionInfo->operandMasks[index] + 1) >> 1;
 
             /* If the sign bit is set */
             if (operand & msb) {
                 /* Manually sign-extend to the 32-bit container */
-                operandDisasm = (int32_t) ( ( ~operand + 1 ) & instruction->operandMasks[index] );
+                operandDisasm = (int32_t) ( ( ~operand + 1 ) & instructionInfo->operandMasks[index] );
                 operandDisasm = -operandDisasm;
             } else {
-                operandDisasm = (int32_t) ( operand & instruction->operandMasks[index] );
+                operandDisasm = (int32_t) ( operand & instructionInfo->operandMasks[index] );
             }
 
             /* If this is an program address */
-            if (instruction->operandTypes[index] == OPERAND_RELATIVE_PROG_ADDRESS) {
+            if (instructionInfo->operandTypes[index] == OPERAND_RELATIVE_PROG_ADDRESS) {
                 /* Multiply by two to point to a byte address */
                 operandDisasm *= 2;
             }

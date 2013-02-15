@@ -89,7 +89,7 @@ int disasmstream_avr_close(struct DisasmStream *self) {
 static int util_disasm_directive(struct instruction *instr, char *name, uint32_t value);
 static int util_disasm_instruction(struct instruction *instr, struct avrInstructionInfo *instructionInfo, struct disasmstream_avr_state *state);
 static void util_disasm_operands(struct avrInstructionDisasm *instructionDisasm);
-static int32_t util_disasm_operand(struct avrInstructionInfo *instruction, uint32_t operand, int index);
+static int32_t util_disasm_operand(struct avrInstructionInfo *instructionInfo, uint32_t operand, int index);
 static void util_opbuffer_shift(struct disasmstream_avr_state *state, int n);
 static int util_opbuffer_len_consecutive(struct disasmstream_avr_state *state);
 static struct avrInstructionInfo *util_iset_lookup_by_opcode(uint16_t opcode);
@@ -102,7 +102,7 @@ int disasmstream_avr_read(struct DisasmStream *self, struct instruction *instr) 
     /* Clear the destination instruction structure */
     memset(instr, 0, sizeof(struct instruction));
 
-    for (decodeAttempts = 0; decodeAttempts < 5; decodeAttempts++) {
+    for (decodeAttempts = 0; decodeAttempts < sizeof(state->data)+1; decodeAttempts++) {
         /* Count the number of consective bytes in our opcode buffer */
         lenConsecutive = util_opbuffer_len_consecutive(state);
 
@@ -311,10 +311,10 @@ static void util_disasm_operands(struct avrInstructionDisasm *instructionDisasm)
     }
 }
 
-static int32_t util_disasm_operand(struct avrInstructionInfo *instruction, uint32_t operand, int index) {
+static int32_t util_disasm_operand(struct avrInstructionInfo *instructionInfo, uint32_t operand, int index) {
     int32_t operandDisasm;
 
-    switch (instruction->operandTypes[index]) {
+    switch (instructionInfo->operandTypes[index]) {
         case OPERAND_BRANCH_ADDRESS:
             /* Relative branch address is 7 bits, two's complement form */
 
