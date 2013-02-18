@@ -120,7 +120,8 @@ int disasmstream_pic_read(struct DisasmStream *self, struct instruction *instr) 
         if (lenConsecutive == 0 && state->len == 0 && state->eof && state->end_directive)
             return STREAM_EOF;
 
-        /* If we decoded all bytes, reached EOF, then return an end directive */
+        /* If we decoded all bytes and reached EOF, then return an end
+         * directive */
         if (lenConsecutive == 0 && state->len == 0 && state->eof) {
             /* Emit an end directive */
             if (util_disasm_directive(instr, PIC_DIRECTIVE_NAME_END, 0) < 0) {

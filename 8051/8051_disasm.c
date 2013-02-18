@@ -41,8 +41,9 @@ struct disasmstream_8051_state {
     uint32_t address[3];
     unsigned int len;
 
-    /* initialized, eof encountered, invalid_instruction booleans */
-    int initialized, eof, invalid_instruction;
+    /* initialized, eof encountered, end directive, invalid instruction
+     * booleans */
+    int initialized, eof, end_directive, invalid_instruction;
     /* Next expected address */
     uint32_t next_address;
 };
@@ -104,9 +105,22 @@ int disasmstream_8051_read(struct DisasmStream *self, struct instruction *instr)
         /* Count the number of consective bytes in our opcode buffer */
         lenConsecutive = util_opbuffer_len_consecutive(state);
 
-        /* If we decoded all bytes, reached EOF, then return EOF too */
-        if (lenConsecutive == 0 && state->len == 0 && state->eof)
+        /* If we decoded all bytes, reached EOF, returned an end directive,
+         * then return EOF too */
+        if (lenConsecutive == 0 && state->len == 0 && state->eof && state->end_directive)
             return STREAM_EOF;
+
+        /* If we decoded all bytes and reached EOF, then return an end
+         * directive */
+        if (lenConsecutive == 0 && state->len == 0 && state->eof) {
+            /* Emit an end directive */
+            if (util_disasm_directive(instr, A8051_DIRECTIVE_NAME_END, 0) < 0) {
+                self->error = "Error allocating memory for directive!";
+                return STREAM_ERROR_FAILURE;
+            }
+            state->end_directive = 1;
+            return 0;
+        }
 
         /* If the address jumped since the last instruction or we're
          * uninitialized, then return an org directive */
