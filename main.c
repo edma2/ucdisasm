@@ -14,6 +14,8 @@
 #include "avr/avr_support.h"
 /* PIC DisasmStream Support */
 #include "pic/pic_support.h"
+/* 8051 DisasmStream Support */
+#include "8051/8051_support.h"
 
 /* File PrintStream Support */
 #include "printstream_file.h"
@@ -26,6 +28,7 @@
 //#define DEBUG_FILE_ASCII_HEX
 #define DEBUG_ARCH_AVR
 #define DEBUG_ARCH_PIC
+#define DEBUG_ARCH_8051
 
 /* Supported file types */
 enum {
@@ -43,6 +46,7 @@ enum {
     ARCH_PIC_MIDRANGE,
     ARCH_PIC_MIDRANGE_ENHANCED,
     ARCH_PIC_PIC18,
+    ARCH_8051,
 };
 
 /* getopt flags for some long options that don't have a short option equivalent */
@@ -107,6 +111,12 @@ void debug(FILE *in) {
         if (test_print_pic_unit_tests()) success = 0;
     #endif
 
+    #if   defined DEBUG_ARCH_8051
+        #include <8051/test/test_8051.h>
+        if (test_disasm_8051_unit_tests()) success = 0;
+        if (test_print_8051_unit_tests()) success = 0;
+    #endif
+
     if (success) printf("All tests passed!\n"); else printf("Some tests failed...\n");
 
     fclose(in);
@@ -144,7 +154,8 @@ static void printUsage(const char *programName) {
   PIC Baseline              pic-baseline\n\
   PIC Midrange              pic-midrange\n\
   PIC Midrange Enhanced     pic-enhanced\n\
-  PIC PIC18                 pic-18\n\n");
+  PIC PIC18                 pic-18\n\
+  8051                      8051\n\n");
     printf("Supported file types:\n\
   Atmel Generic             generic\n\
   Intel HEX8                ihex\n\
@@ -261,6 +272,8 @@ int main(int argc, const char *argv[]) {
             arch = ARCH_PIC_MIDRANGE_ENHANCED;
         else if (strcasecmp(arch_str, "pic-18") == 0)
             arch = ARCH_PIC_PIC18;
+        else if (strcasecmp(arch_str, "8051") == 0)
+            arch = ARCH_8051;
         else {
             fprintf(stderr, "Unknown architecture %s.\n", arch_str);
             fprintf(stderr, "See program help/usage for supported architectures.\n");
@@ -399,6 +412,10 @@ int main(int argc, const char *argv[]) {
         ds.stream_init = disasmstream_pic_pic18_init;
         ds.stream_close = disasmstream_pic_pic18_close;
         ds.stream_read = disasmstream_pic_pic18_read;
+    } else if (arch == ARCH_8051) {
+        ds.stream_init = disasmstream_8051_init;
+        ds.stream_close = disasmstream_8051_close;
+        ds.stream_read = disasmstream_8051_read;
     }
 
     /* Setup the File PrintStream */
