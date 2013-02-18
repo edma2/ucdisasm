@@ -9,26 +9,18 @@
 
 /* File ByteStream Support */
 #include "file/file_support.h"
-
-/* AVR DisasmStream Support */
+/* DisasmStream Support */
 #include "avr/avr_support.h"
-/* PIC DisasmStream Support */
 #include "pic/pic_support.h"
-/* 8051 DisasmStream Support */
 #include "8051/8051_support.h"
-
 /* File PrintStream Support */
 #include "printstream_file.h"
 
-#define DEBUG
-//#define DEBUG_FILE_ATMEL_GENERIC
-//#define DEBUG_FILE_INTEL_HEX
-//#define DEBUG_FILE_MOTOROLA_SRECORD
-//#define DEBUG_FILE_BINARY
-//#define DEBUG_FILE_ASCII_HEX
-#define DEBUG_ARCH_AVR
-#define DEBUG_ARCH_PIC
-#define DEBUG_ARCH_8051
+/* Debugging Unit Tests */
+#include <file/test/test_bytestream.h>
+#include <avr/test/test_avr.h>
+#include <pic/test/test_pic.h>
+#include <8051/test/test_8051.h>
 
 /* Supported file types */
 enum {
@@ -49,13 +41,6 @@ enum {
     ARCH_8051,
 };
 
-/* getopt flags for some long options that don't have a short option equivalent */
-static int no_addresses = 0;            /* Flag for --no-addresses */
-static int no_destination_comments = 0; /* Flag for --no-destination-comments */
-static int no_opcodes = 0;              /* Flag for --no-opcodes */
-static int assembly = 0;                /* Flag for --assembly */
-static int data_base = 0;               /* Base of data constants (hexadecimal, binary, decimal) */
-
 /* Supported data constant bases */
 enum {
     DATA_BASE_HEX,
@@ -63,66 +48,79 @@ enum {
     DATA_BASE_DEC,
 };
 
+/* getopt flags for some long options that don't have a short option equivalent */
+static int flag_no_addresses = 0;            /* Flag for --no-addresses */
+static int flag_no_destination_comments = 0; /* Flag for --no-destination-comments */
+static int flag_no_opcodes = 0;              /* Flag for --no-opcodes */
+static int flag_assembly = 0;                /* Flag for --assembly */
+static int flag_debug = 0;                   /* Flag for --debug */
+static int flag_data_base = 0;               /* Base of data constants (hexadecimal, binary, decimal) */
+
 static struct option long_options[] = {
     {"architecture", required_argument, NULL, 'a'},
     {"file-type", required_argument, NULL, 't'},
     {"out-file", required_argument, NULL, 'o'},
-    {"assembly", no_argument, &assembly, 1},
-    {"data-base-hex", no_argument, &data_base, DATA_BASE_HEX},
-    {"data-base-bin", no_argument, &data_base, DATA_BASE_BIN},
-    {"data-base-dec", no_argument, &data_base, DATA_BASE_DEC},
-    {"no-opcodes", no_argument, &no_opcodes, 1},
-    {"no-addresses", no_argument, &no_addresses, 1},
-    {"no-destination-comments", no_argument, &no_destination_comments, 1},
+    {"assembly", no_argument, &flag_assembly, 1},
+    {"data-base-hex", no_argument, &flag_data_base, DATA_BASE_HEX},
+    {"data-base-bin", no_argument, &flag_data_base, DATA_BASE_BIN},
+    {"data-base-dec", no_argument, &flag_data_base, DATA_BASE_DEC},
+    {"no-opcodes", no_argument, &flag_no_opcodes, 1},
+    {"no-addresses", no_argument, &flag_no_addresses, 1},
+    {"no-destination-comments", no_argument, &flag_no_destination_comments, 1},
+    {"debug", no_argument, &flag_debug, 1},
     {"help", no_argument, NULL, 'h'},
     {"version", no_argument, NULL, 'v'},
     {NULL, 0, NULL, 0}
 };
 
-void debug(FILE *in) {
+void debug_tests(FILE *in, int file_type) {
     int success = 1;
 
-    #if   defined DEBUG_FILE_ATMEL_GENERIC
-        #include <file/test/test_bytestream.h>
-        if (test_bytestream(in, bytestream_generic_init, bytestream_generic_close, bytestream_generic_read)) success = 0;
-    #elif defined DEBUG_FILE_INTEL_HEX
-        #include <file/test/test_bytestream.h>
-        if (test_bytestream(in, bytestream_ihex_init, bytestream_ihex_close, bytestream_ihex_read)) success = 0;
-    #elif defined DEBUG_FILE_MOTOROLA_SRECORD
-        #include <file/test/test_bytestream.h>
-        if (test_bytestream(in, bytestream_srecord_init, bytestream_srecord_close, bytestream_srecord_read)) success = 0;
-    #elif defined DEBUG_FILE_BINARY
-        #include <file/test/test_bytestream.h>
-        if (test_bytestream(in, bytestream_binary_init, bytestream_binary_close, bytestream_binary_read)) success = 0;
-    #elif defined DEBUG_FILE_ASCII_HEX
-        #include <file/test/test_bytestream.h>
-        if (test_bytestream(in, bytestream_asciihex_init, bytestream_asciihex_close, bytestream_asciihex_read)) success = 0;
-    #endif
+    /* Test file bytestream parsing */
+    if (in != NULL) {
+        switch (file_type) {
+            case FILE_TYPE_ATMEL_GENERIC:
+                if (test_bytestream(in, bytestream_generic_init, bytestream_generic_close, bytestream_generic_read))
+                    success = 0;
+                break;
+            case FILE_TYPE_INTEL_HEX:
+                if (test_bytestream(in, bytestream_ihex_init, bytestream_ihex_close, bytestream_ihex_read))
+                    success = 0;
+                break;
+            case FILE_TYPE_MOTOROLA_SRECORD:
+                if (test_bytestream(in, bytestream_srecord_init, bytestream_srecord_close, bytestream_srecord_read))
+                    success = 0;
+                break;
+            case FILE_TYPE_BINARY:
+                if (test_bytestream(in, bytestream_binary_init, bytestream_binary_close, bytestream_binary_read))
+                    success = 0;
+                break;
+            case FILE_TYPE_ASCII_HEX:
+                if (test_bytestream(in, bytestream_asciihex_init, bytestream_asciihex_close, bytestream_asciihex_read))
+                    success = 0;
+                break;
+        }
+    }
 
-    #if   defined DEBUG_ARCH_AVR
-        #include <avr/test/test_avr.h>
-        if (test_disasm_avr_unit_tests()) success = 0;
-        if (test_print_avr_unit_tests()) success = 0;
-    #endif
+    /* Test AVR Architecture */
+    if (test_disasm_avr_unit_tests()) success = 0;
+    if (test_print_avr_unit_tests()) success = 0;
 
-    #if   defined DEBUG_ARCH_PIC
-        #include <pic/test/test_pic.h>
-        if (test_disasm_pic_unit_tests()) success = 0;
-        if (test_print_pic_unit_tests()) success = 0;
-    #endif
+    /* Test PIC Architecture */
+    if (test_disasm_pic_unit_tests()) success = 0;
+    if (test_print_pic_unit_tests()) success = 0;
 
-    #if   defined DEBUG_ARCH_8051
-        #include <8051/test/test_8051.h>
-        if (test_disasm_8051_unit_tests()) success = 0;
-        if (test_print_8051_unit_tests()) success = 0;
-    #endif
+    /* Test 8051 Architecture */
+    if (test_disasm_8051_unit_tests()) success = 0;
+    if (test_print_8051_unit_tests()) success = 0;
 
-    if (success) printf("All tests passed!\n"); else printf("Some tests failed...\n");
-
-    fclose(in);
+    if (success)
+        printf("All tests passed!\n");
+    else
+        printf("Some tests failed...\n");
 }
 
-static void printUsage(const char *programName) {
+static void print_usage(const char *programName) {
     printf("Usage: %s -a <architecture> [option(s)] <file>\n", programName);
     printf("Disassembles program file <file>. Use - for standard input.\n\n");
     printf("ucdisasm version 1.0 - 02/04/2013.\n");
@@ -148,7 +146,8 @@ static void printUsage(const char *programName) {
                                   of relative branch/jump/call instructions.\n\
 \n\
   -h, --help                    Display this usage/help.\n\
-  -v, --version                 Display the program's version.\n\n");
+  -v, --version                 Display the program's version.\n\
+  --debug                       Run debugging tests.\n\n");
     printf("Supported architectures:\n\
   Atmel AVR8                avr\n\
   PIC Baseline              pic-baseline\n\
@@ -164,7 +163,7 @@ static void printUsage(const char *programName) {
   ASCII Hex                 ascii\n\n");
 }
 
-static void printVersion(void) {
+static void print_version(void) {
     printf("ucdisasm version 1.0 - 02/04/2013.\n");
     printf("Written by Vanya Sergeev - <vsergeev@gmail.com>\n");
 }
@@ -227,21 +226,27 @@ int main(int argc, const char *argv[]) {
                     strncpy(file_out_str, optarg, sizeof(file_out_str));
                 break;
             case 'h':
-                printUsage(argv[0]);
+                print_usage(argv[0]);
                 exit(EXIT_SUCCESS);
             case 'v':
-                printVersion();
+                print_version();
                 exit(EXIT_SUCCESS);
             default:
-                printUsage(argv[0]);
+                print_usage(argv[0]);
                 exit(EXIT_SUCCESS);
         }
+    }
+
+    /* If there are no more arguments left but we're in debugging test mode */
+    if (optind == argc && flag_debug) {
+        debug_tests(file_in, 0);
+        goto cleanup_exit_success;
     }
 
     /* If there are no more arguments left */
     if (optind == argc) {
         fprintf(stderr, "Error: No program file specified! Use - for standard input.\n\n");
-        printUsage(argv[0]);
+        print_usage(argv[0]);
         goto cleanup_exit_failure;
     }
 
@@ -281,7 +286,7 @@ int main(int argc, const char *argv[]) {
         }
     } else {
         fprintf(stderr, "Error: No architecture specified!\n\n");
-        printUsage(argv[0]);
+        print_usage(argv[0]);
         goto cleanup_exit_failure;
     }
 
@@ -325,6 +330,12 @@ int main(int argc, const char *argv[]) {
         ungetc(c, file_in);
     }
 
+    /* Debug this file type if we're in debug mode */
+    if (flag_debug) {
+        debug_tests(file_in, file_type);
+        goto cleanup_exit_success;
+    }
+
     /*** Open output file ***/
 
     /* If an output file was specified */
@@ -339,29 +350,22 @@ int main(int argc, const char *argv[]) {
         file_out = stdout;
     }
 
-    /*** Debug ***/
-
-    #ifdef DEBUG
-    debug(file_in);
-    goto cleanup_exit_success;
-    #endif
-
     /*** Setup Formatting Flags ***/
-    if (!no_addresses)
+    if (!flag_no_addresses)
         flags |= PRINT_FLAG_ADDRESSES;
-    if (!no_destination_comments)
+    if (!flag_no_destination_comments)
         flags |= PRINT_FLAG_DESTINATION_COMMENT;
-    if (!no_opcodes)
+    if (!flag_no_opcodes)
         flags |= PRINT_FLAG_OPCODES;
 
-    if (data_base == DATA_BASE_BIN)
+    if (flag_data_base == DATA_BASE_BIN)
         flags |= PRINT_FLAG_DATA_BIN;
-    else if (data_base == DATA_BASE_DEC)
+    else if (flag_data_base == DATA_BASE_DEC)
         flags |= PRINT_FLAG_DATA_DEC;
     else
         flags |= PRINT_FLAG_DATA_HEX;
 
-    if (assembly)
+    if (flag_assembly)
         flags |= PRINT_FLAG_ASSEMBLY;
 
     /*** Setup disassembler streams ***/
