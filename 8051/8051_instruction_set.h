@@ -8,6 +8,7 @@
 
 /* Directive names */
 #define A8051_DIRECTIVE_NAME_ORIGIN  ".org"
+#define A8051_DIRECTIVE_NAME_END     "end"
 
 /* Enumeration for all 8051 Operand Types */
 enum {
