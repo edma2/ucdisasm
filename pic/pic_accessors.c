@@ -263,8 +263,13 @@ void pic_instruction_free(struct instruction *instr) {
 /* PIC Directives */
 /******************************************************************************/
 
+/* Only ORG and END implemented for now */
+
 unsigned int pic_directive_get_num_operands(struct instruction *instr) {
-    return 1;
+    struct picDirective *directive = (struct picDirective *)instr->data;
+    if (strcmp(directive->name, PIC_DIRECTIVE_NAME_ORIGIN) == 0)
+        return 1;
+    return 0;
 }
 
 int pic_directive_get_str_mnemonic(struct instruction *instr, char *dest, int size, int flags) {
