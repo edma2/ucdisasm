@@ -198,8 +198,13 @@ void a8051_instruction_free(struct instruction *instr) {
 /* 8051 Directives */
 /******************************************************************************/
 
+/* Only ORG and END implemented for now */
+
 unsigned int a8051_directive_get_num_operands(struct instruction *instr) {
-    return 1;
+    struct a8051Directive *directive = (struct a8051Directive *)instr->data;
+    if (strcmp(directive->name, A8051_DIRECTIVE_NAME_ORIGIN) == 0)
+        return 1;
+    return 0;
 }
 
 int a8051_directive_get_str_mnemonic(struct instruction *instr, char *dest, int size, int flags) {

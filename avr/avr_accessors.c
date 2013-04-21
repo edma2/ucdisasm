@@ -222,8 +222,13 @@ void avr_instruction_free(struct instruction *instr) {
 /* AVR Directives */
 /******************************************************************************/
 
+/* Only ORG and END implemented for now */
+
 unsigned int avr_directive_get_num_operands(struct instruction *instr) {
-    return 1;
+    struct avrDirective *directive = (struct avrDirective *)instr->data;
+    if (strcmp(directive->name, AVR_DIRECTIVE_NAME_ORIGIN) == 0)
+        return 1;
+    return 0;
 }
 
 int avr_directive_get_str_mnemonic(struct instruction *instr, char *dest, int size, int flags) {
