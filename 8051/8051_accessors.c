@@ -11,10 +11,12 @@
 /* 8051 formats */
 #define A8051_FORMAT_OP_REGISTER(fmt)       "R" fmt ""      /* MOV A, R1 */
 #define A8051_FORMAT_OP_IND_REGISTER(fmt)   "@R" fmt ""     /* MOV A, @R1 */
-#define A8051_FORMAT_OP_ADDR(fmt)           "0" fmt "h"      /* ACALL 01000h */
-#define A8051_FORMAT_OP_ADDR_NOT_BIT(fmt)   "/0" fmt "h"     /* ORL C, /025h */
+#define A8051_FORMAT_OP_ADDR(fmt)           "0" fmt "h"     /* ACALL 01000h */
+#define A8051_FORMAT_OP_ADDR_NOT_BIT(fmt)   "/0" fmt "h"    /* ORL C, /025h */
 #define A8051_FORMAT_OP_ADDR_RELATIVE(fmt)  "." fmt ""      /* SJMP .-2 */
-#define A8051_FORMAT_OP_IMMED(fmt)          "#0" fmt "h"     /* MOV A, #0ffh */
+#define A8051_FORMAT_OP_IMMED_HEX(fmt)      "#0" fmt "h"    /* MOV A, #0ffh */
+#define A8051_FORMAT_OP_IMMED_BIN(fmt)      "#0" fmt "b"    /* MOV A, #011111111b */
+#define A8051_FORMAT_OP_IMMED_DEC(fmt)      "#0" fmt ""     /* MOV A, #0255 */
 #define A8051_FORMAT_OP_ADDRESS_LABEL(fmt)  "A_" fmt ""     /* AJMP A_0004 */
 #define A8051_FORMAT_ADDRESS(fmt)           "" fmt ":"      /* 0004: */
 #define A8051_FORMAT_ADDRESS_LABEL(fmt)     "A_" fmt ":"    /* A_0004: */
@@ -25,7 +27,9 @@
 #define A8051_FORMAT_OP_ADDR(fmt)           "0x" fmt ""     /* ACALL 0x1000 */
 #define A8051_FORMAT_OP_ADDR_NOT_BIT(fmt)   "/0x" fmt ""    /* ORL C, /0x25 */
 #define A8051_FORMAT_OP_ADDR_RELATIVE(fmt)  "." fmt ""      /* SJMP .-2 */
-#define A8051_FORMAT_OP_IMMED(fmt)          "#0x" fmt ""    /* MOV A, #0xff */
+#define A8051_FORMAT_OP_IMMED_HEX(fmt)      "#0x" fmt ""    /* MOV A, #0xff */
+#define A8051_FORMAT_OP_IMMED_BIN(fmt)      "#0b" fmt ""    /* MOV A, #0b11111111 */
+#define A8051_FORMAT_OP_IMMED_DEC(fmt)      "#0d" fmt ""    /* MOV A, #0d255 */
 #define A8051_FORMAT_OP_ADDRESS_LABEL(fmt)  "A_" fmt ""     /* AJMP A_0004 */
 #define A8051_FORMAT_ADDRESS(fmt)           "" fmt ":"      /* 0004: */
 #define A8051_FORMAT_ADDRESS_LABEL(fmt)     "A_" fmt ":"    /* A_0004: */
@@ -137,9 +141,46 @@ int a8051_instruction_get_str_operand(struct instruction *instr, char *dest, int
             return snprintf(dest, size, "@A+PC");
 
         case OPERAND_IMMED:
-            return snprintf(dest, size, A8051_FORMAT_OP_IMMED("%02x"), instructionDisasm->operandDisasms[index]);
+            if (flags & PRINT_FLAG_DATA_BIN) {
+                /* Data representation binary */
+                char binary[9];
+                int i;
+                for (i = 0; i < 8; i++) {
+                    if (instructionDisasm->operandDisasms[index] & (1 << i))
+                        binary[7-i] = '1';
+                    else
+                        binary[7-i] = '0';
+                }
+                binary[8] = '\0';
+                return snprintf(dest, size, A8051_FORMAT_OP_IMMED_BIN("%s"), binary);
+            } else if (flags & PRINT_FLAG_DATA_DEC) {
+                /* Data representation decimal */
+                return snprintf(dest, size, A8051_FORMAT_OP_IMMED_DEC("%d"), instructionDisasm->operandDisasms[index]);
+            } else {
+                /* Default to data representation hex */
+                return snprintf(dest, size, A8051_FORMAT_OP_IMMED_HEX("%02x"), instructionDisasm->operandDisasms[index]);
+            }
+
         case OPERAND_IMMED_16:
-            return snprintf(dest, size, A8051_FORMAT_OP_IMMED("%04x"), instructionDisasm->operandDisasms[index]);
+            if (flags & PRINT_FLAG_DATA_BIN) {
+                /* Data representation binary */
+                char binary[17];
+                int i;
+                for (i = 0; i < 16; i++) {
+                    if (instructionDisasm->operandDisasms[index] & (1 << i))
+                        binary[15-i] = '1';
+                    else
+                        binary[15-i] = '0';
+                }
+                binary[16] = '\0';
+                return snprintf(dest, size, A8051_FORMAT_OP_IMMED_BIN("%s"), binary);
+            } else if (flags & PRINT_FLAG_DATA_DEC) {
+                /* Data representation decimal */
+                return snprintf(dest, size, A8051_FORMAT_OP_IMMED_DEC("%d"), instructionDisasm->operandDisasms[index]);
+            } else {
+                /* Default to data representation hex */
+                return snprintf(dest, size, A8051_FORMAT_OP_IMMED_HEX("%04x"), instructionDisasm->operandDisasms[index]);
+            }
 
         case OPERAND_ADDR_DIRECT:
         case OPERAND_ADDR_DIRECT_SRC:
