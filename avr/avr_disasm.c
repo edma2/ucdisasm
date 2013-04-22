@@ -218,8 +218,6 @@ int disasmstream_avr_read(struct DisasmStream *self, struct instruction *instr) 
     /* We should have returned an instruction above */
     self->error = "Error, catastrophic failure! No decoding logic invoked!";
     return STREAM_ERROR_FAILURE;
-
-    return 0;
 }
 
 static int util_disasm_directive(struct instruction *instr, char *name, uint32_t value) {
