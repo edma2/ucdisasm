@@ -29,6 +29,7 @@ enum {
     FILE_TYPE_MOTOROLA_SRECORD,
     FILE_TYPE_BINARY,
     FILE_TYPE_ASCII_HEX,
+    FILE_TYPE_ELF
 };
 
 /* Supported architectures */
@@ -99,6 +100,10 @@ void debug_tests(FILE *in, int file_type) {
                 if (test_bytestream(in, bytestream_asciihex_init, bytestream_asciihex_close, bytestream_asciihex_read))
                     success = 0;
                 break;
+            case FILE_TYPE_ELF:
+                if (test_bytestream(in, bytestream_elf_init, bytestream_elf_close, bytestream_elf_read))
+                    success = 0;
+                break;
         }
     }
 
@@ -160,6 +165,7 @@ static void print_usage(const char *programName) {
   Intel HEX8                ihex\n\
   Motorola S-Record         srec\n\
   Raw Binary                binary\n\
+  ELF (64-bit)              elf\n\
   ASCII Hex                 ascii\n\n");
 }
 
@@ -304,6 +310,8 @@ int main(int argc, const char *argv[]) {
             file_type = FILE_TYPE_ASCII_HEX;
         else if (strcasecmp(file_type_str, "binary") == 0)
             file_type = FILE_TYPE_BINARY;
+        else if (strcasecmp(file_type_str, "elf") == 0)
+            file_type = FILE_TYPE_ELF;
         else {
             fprintf(stderr, "Unknown file type %s.\n", file_type_str);
             fprintf(stderr, "See program help/usage for supported file types.\n");
@@ -322,6 +330,8 @@ int main(int argc, const char *argv[]) {
         /* Atmel Generic record statements start with a ASCII hex digit */
         else if ( ((char)c >= '0' && (char)c <= '9') || ((char)c >= 'a' && (char)c <= 'f') || ((char)c >= 'A' && (char)c <= 'F') )
             file_type = FILE_TYPE_ATMEL_GENERIC;
+        else if (c == 0x7f)
+            file_type = FILE_TYPE_ELF;
         else {
             fprintf(stderr, "Unable to auto-recognize file type by first character.\n");
             fprintf(stderr, "Please specify file type with -t / --file-type option.\n");
@@ -388,6 +398,10 @@ int main(int argc, const char *argv[]) {
         bs.stream_init = bytestream_asciihex_init;
         bs.stream_close = bytestream_asciihex_close;
         bs.stream_read = bytestream_asciihex_read;
+    } else if (file_type == FILE_TYPE_ELF) {
+        bs.stream_init = bytestream_elf_init;
+        bs.stream_close = bytestream_elf_close;
+        bs.stream_read = bytestream_elf_read;
     } else {
         bs.stream_init = bytestream_binary_init;
         bs.stream_close = bytestream_binary_close;
