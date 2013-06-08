@@ -14,8 +14,9 @@ struct bytestream_elf_state {
   Elf64_Ehdr *elf;
   /* Pointer to .text data in memory map */
   uint8_t *text;
-  /* Current instruction address */
-  uint32_t address;
+  /* Instruction address */
+  uint64_t address_current;
+  uint64_t address_end;
   /* Size of ELF file */
   long size;
 };
@@ -88,6 +89,8 @@ int bytestream_elf_init(struct ByteStream *self) {
     return STREAM_ERROR_ALLOC;
   }
   state->text = (uint8_t *)state->elf + text_sh->sh_offset;
+  state->address_current = text_sh->sh_addr;
+  state->address_end = text_sh->sh_addr + text_sh->sh_size;
 
   self->error = NULL;
 
@@ -107,5 +110,13 @@ int bytestream_elf_close(struct ByteStream *self) {
 
 /* Output function */
 int bytestream_elf_read(struct ByteStream *self, uint8_t *data, uint32_t *address) {
-  return STREAM_EOF;
+  struct bytestream_elf_state *state = self->state;
+
+  if (state->address_current == state->address_end)
+    return STREAM_EOF;
+
+  *data = *state->text++;
+  *address = state->address_current++;
+
+  return 0;
 }
