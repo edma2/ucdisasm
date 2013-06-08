@@ -25,3 +25,7 @@ int bytestream_asciihex_init(struct ByteStream *self);
 int bytestream_asciihex_close(struct ByteStream *self);
 int bytestream_asciihex_read(struct ByteStream *self, uint8_t *data, uint32_t *address);
 
+/* ELF Stream Support */
+int bytestream_elf_init(struct ByteStream *self);
+int bytestream_elf_close(struct ByteStream *self);
+int bytestream_elf_read(struct ByteStream *self, uint8_t *data, uint32_t *address);
