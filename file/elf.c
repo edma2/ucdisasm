@@ -7,8 +7,6 @@
 
 #include <bytestream.h>
 
-// TODO: fix indentation
-
 struct bytestream_elf_state {
     /* Memory mapped ELF file */
     Elf64_Ehdr *elf;
@@ -101,7 +99,7 @@ int bytestream_elf_init(struct ByteStream *self) {
 int bytestream_elf_close(struct ByteStream *self) {
     struct bytestream_elf_state *state = self->state;
 
-    munmap(state->elf, state->size); // TODO check error
+    munmap(state->elf, state->size);
     free(state);
     fclose(self->in);
 
