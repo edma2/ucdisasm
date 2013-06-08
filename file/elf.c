@@ -105,4 +105,6 @@ int bytestream_elf_close(struct ByteStream *self) {
 }
 
 /* Output function */
-int bytestream_elf_read(struct ByteStream *self, uint8_t *data, uint32_t *address);
+int bytestream_elf_read(struct ByteStream *self, uint8_t *data, uint32_t *address) {
+  return STREAM_EOF;
+}
