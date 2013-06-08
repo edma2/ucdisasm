@@ -99,6 +99,7 @@ int bytestream_elf_close(struct ByteStream *self) {
 
   munmap(state->elf, state->size); // TODO check error
   free(state);
+  fclose(self->in);
 
   return 0;
 }
